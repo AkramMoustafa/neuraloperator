@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 
 from zencfg import ConfigBase
 from .distributed import DistributedConfig
-from .models import ModelConfig, FNO_Medium2d
+from .models import ModelConfig, FNO_Medium2d, FNO_Medium2d_2ch
 from .opt import OptimizationConfig, PatchingConfig
 from .wandb import WandbConfig
 
@@ -35,3 +35,14 @@ class Default(ConfigBase):
     data: NavierStokesDatasetConfig = NavierStokesDatasetConfig()
     patching: PatchingConfig = PatchingConfig()
     wandb: WandbConfig = WandbConfig()
+
+class Default_NS2D_2ch(ConfigBase):
+    n_params_baseline: Optional[Any] = None
+    verbose: bool = True
+    distributed: DistributedConfig = DistributedConfig()
+    model: ModelConfig = FNO_Medium2d_2ch()
+    opt: OptimizationConfig = NavierStokesOptConfig()
+    data: NavierStokesDatasetConfig = NavierStokesDatasetConfig()
+    patching: PatchingConfig = PatchingConfig()
+    wandb: WandbConfig = WandbConfig()
+
