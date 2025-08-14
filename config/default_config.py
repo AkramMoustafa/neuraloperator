@@ -3,10 +3,6 @@ from typing import Any, List, Optional
 
 from zencfg import ConfigBase
 
-
-
-
-
 class Distributed(ConfigBase):
     use_distributed: bool = True
     wireup_info: str = "mpi"
@@ -92,11 +88,17 @@ class Default(ConfigBase):
     patching: Patching = Patching()
     wandb: Wandb = Wandb()
 
+class Fno2d_2ch(Fno2d):
 
-class Original_Fno(ConfigBase):
-    arch: str = "tfno2d"
-    fno2d: Fno2d = Fno2d()
-    wandb: Wandb = Wandb()
+    in_channels: int = 2
+    out_channels: int = 1 
+class Data_2ch(Data):
+    encode_input: bool = True
+    encode_output: bool = False
+
+class Default_NS2D_2ch(Default):          
+    fno2d: Fno2d_2ch = Fno2d_2ch()        
+    data:  Data_2ch  = Data_2ch() 
 
 
 class Distributed_Mg_Tucker(ConfigBase):

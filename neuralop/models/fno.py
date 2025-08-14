@@ -541,6 +541,81 @@ class FNO2d(FNO):
         self.n_modes_height = n_modes_height
         self.n_modes_width = n_modes_width
 
+class Fno2d_2ch(FNO):
+    """2D Fourier Neural Operator
+
+    For the full list of parameters, see :class:`neuralop.models.FNO`.
+
+    Parameters
+    ----------
+    n_modes_width : int
+        number of modes to keep in Fourier Layer, along the width
+    n_modes_height : int
+        number of Fourier modes to keep along the height
+    """
+
+    def __init__(
+        self,
+        n_modes_height,
+        n_modes_width,
+        hidden_channels,
+        in_channels=3,
+        out_channels=1,
+        lifting_channels=256,
+        projection_channels=256,
+        n_layers=4,
+        resolution_scaling_factor=None,
+        max_n_modes=None,
+        non_linearity=F.gelu,
+        stabilizer=None,
+        complex_data=False,
+        fno_block_precision="full",
+        channel_mlp_dropout=0,
+        channel_mlp_expansion=0.5,
+        norm=None,
+        skip="soft-gating",
+        separable=False,
+        preactivation=False,
+        factorization=None,
+        rank=1.0,
+        fixed_rank_modes=False,
+        implementation="factorized",
+        decomposition_kwargs=None,
+        domain_padding=None,
+        domain_padding_mode="symmetric",
+        **kwargs,
+    ):
+
+        super().__init__(
+            n_modes=(n_modes_height, n_modes_width),
+            hidden_channels=hidden_channels,
+            in_channels=in_channels,
+            out_channels=out_channels,
+            lifting_channels=lifting_channels,
+            projection_channels=projection_channels,
+            n_layers=n_layers,
+            resolution_scaling_factor=resolution_scaling_factor,
+            non_linearity=non_linearity,
+            stabilizer=stabilizer,
+            complex_data=complex_data,
+            fno_block_precision=fno_block_precision,
+            channel_mlp_dropout=channel_mlp_dropout,
+            channel_mlp_expansion=channel_mlp_expansion,
+            max_n_modes=max_n_modes,
+            norm=norm,
+            skip=skip,
+            separable=separable,
+            preactivation=preactivation,
+            factorization=factorization,
+            rank=rank,
+            fixed_rank_modes=fixed_rank_modes,
+            implementation=implementation,
+            decomposition_kwargs=decomposition_kwargs,
+            domain_padding=domain_padding,
+            domain_padding_mode=domain_padding_mode,
+        )
+        self.n_modes_height = n_modes_height
+        self.n_modes_width = n_modes_width
 
 class FNO3d(FNO):
     """3D Fourier Neural Operator

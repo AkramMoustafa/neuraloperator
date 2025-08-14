@@ -62,6 +62,16 @@ class FNO_Medium2d(SimpleFNOConfig):
     hidden_channels: int = 64
     projection_channel_ratio: int = 4
 
+class FNO_Medium2d_2ch(SimpleFNOConfig):
+    """
+    FNO_Medium2d: a basic, medium-sized FNO for 2d problems.
+    """
+    data_channels: int = 2
+    out_channels: int = 2
+    n_modes: List[int] = [64,64]
+    hidden_channels: int = 64
+    projection_channel_ratio: int = 4
+
 class FNO_Large2d(SimpleFNOConfig):
     """
     FNO_Large2d: a large FNO for 2d problems.
