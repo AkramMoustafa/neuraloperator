@@ -3,8 +3,25 @@
 # Purpose : Starting point for testing a two-channel Navier–Stokes dataset 
 #           with buoyancy effects, to be used in future model development
 
+import sys
+
+from pathlib import Path
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, DistributedSampler
+import torch.distributed as dist
+import wandb
+from neuralop import H1Loss, LpLoss, Trainer, get_model
+from neuralop.utils import get_wandb_api_key, count_model_params
+from neuralop.mpu.comm import get_local_rank
+from neuralop.training import setup, AdamW
+
+config_name = "default"
+from zencfg import make_config_from_cli
+import sys 
+sys.path.insert(0, '../')
+from config.navier_stokes_config import Default_NS2D_2ch as Cfg
+config = make_config_from_cli(Cfg)
+config = config.to_dict()
 
 class ChannelwiseGaussianNormalizer:
     def __init__(self, sample_loader, key, eps=1e-6, max_batches=None):
