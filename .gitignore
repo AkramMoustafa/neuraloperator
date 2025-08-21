@@ -82,3 +82,6 @@ target/
 *.pt
 *.tgz
 neuralop/data/datasets/data/
+*.pt
+*.tgz
+neuralop/data/datasets/data/
