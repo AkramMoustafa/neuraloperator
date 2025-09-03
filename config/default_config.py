@@ -88,18 +88,39 @@ class Default(ConfigBase):
     patching: Patching = Patching()
     wandb: Wandb = Wandb()
 
+"""
+Author: Akram Moustafa
+Date: 09/02/2025
+Purpose:
+    Defines the default configuration for training a 2-channel
+    Fourier Neural Operator (FNO) on the 2D Navier–Stokes system.
+"""
 class Fno2d_2ch(Fno2d):
 
     in_channels: int = 2
-    out_channels: int = 1 
+    out_channels: int = 2 
+"""
+Author: Akram Moustafa
+Date: 09/02/2025
+Purpose:
+    Defines the default configuration for training a 2-channel
+    Fourier Neural Operator (FNO) on the 2D Navier–Stokes system.
+"""
 class Data_2ch(Data):
     encode_input: bool = True
-    encode_output: bool = False
+    encode_output: bool = True
 
+"""
+Author: Akram Moustafa
+Date: 09/02/2025
+Purpose:
+    Defines the default configuration for training a 2-channel
+    Fourier Neural Operator (FNO) on the 2D Navier–Stokes system.
+"""
 class Default_NS2D_2ch(Default):          
-    fno2d: Fno2d_2ch = Fno2d_2ch()        
+    fno2d: Fno2d_2ch = Fno2d_2ch()     
+    distributed: Distributed = Distributed(use_distributed = False)   
     data:  Data_2ch  = Data_2ch() 
-
 
 class Distributed_Mg_Tucker(ConfigBase):
     tfno2d: Tfno2d = Tfno2d()
