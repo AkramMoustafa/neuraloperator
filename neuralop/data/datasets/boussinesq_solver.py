@@ -1,12 +1,13 @@
-""" 
-August 13, 2025 
- * Xiaoming Zheng & Akram Moustafa
+"""
+August 13, 2025
+ * Xiaoming Zheng
+ * Edited by Akram Moustafa
  * Department of Mathematics
  * Central Michigan University
  * Mount Pleasant, MI 48859
  *
-   Solve Perturbation Of Anistropic Boussinest Equation 
-   from the paper 
+   Solve Perturbation Of Anistropic Boussinest Equation
+   from the paper
 Adhikari, D., Ben Said, O., Pandey, U.R., Wu Jiahong Stability and large-time behavior for the 2D Boussineq system with horizontal dissipation and vertical thermal diffusion. Nonlinear Differ. Equ. Appl. 29, 42 (2022). https://doi.org/10.1007/s00030-022-00773-4
 
 Purpose: finding solution
@@ -15,7 +16,7 @@ Purpose: finding solution
    D_tt u     - (eta D_22 + nu D_11) D_t u     + nu*eta*D_11 D_22 u     + D_11 Laplace^{-1} u     = N5
    D_tt theta - (eta D_22 + nu D_11) D_t theta + nu*eta*D_11 D_22 theta + D_11 Laplace^{-1} theta = N6
 
-where 
+where
    N5 = - (D_t - eta D_22) P(u\cdot \nabla u)     + \nabla^\perp D_1 \Laplace^{-1} (u\cdot \nabla theta)
    N6 = - (D_t - nu  D_11) (u\cdot \nabla theta)  + u\cdot \nabla u_2 - D_2 Laplace^{-1} \nabla (u\cdot \nabla u)
 
@@ -25,15 +26,11 @@ where P is Leray's projection, that is,
 Method: convert to first order differential system on t: introducing new variables
    v1  = D_t u1
    v2  = D_t u2
-   ps = D_t theta 
+   ps = D_t theta
 """
-import configparser
-from mpi4py import MPI
-import numpy as np
 
-PI = 3.14159265358979323846264338327950288419716939937510582097494459230781
-L = 2*PI;
-g1_func(t, x, y,ConvTest, nu):
+import numpy as np
+def g1_func(t, x, y,ConvTest, nu):
 
     if(ConvTest):
         u1, u2, D1w, D2w, D11w, D1th, Dtw;
@@ -100,7 +97,7 @@ def f1_func( t,  x,  y, ConvTest):
         return Dtu1 +u1*D1u1 + u2*D2u1 + D1p - nu*D11u1
     else:
         return 0
-def winitFunc( t,  x,  y, ConvTest):
+def winitFunc( t,  x,  y):
 
   if(ConvTest):
      return -math.cos(t)*2*A*math.cos(2*A*x)*pow(math.sin(A*y),2)-math.cos(t)*pow(math.sin(A*x),2)*2*A*math.cos(2*A*y)
@@ -123,7 +120,7 @@ def thinitFunc( t,  x,  y):
      tmp0 = 4*(1.e0 + 1.e0/4 + 1.e0/9 + 1.e0/16)
      tmp1 = tmp0
      tmp2 = tmp0
-     for i in range(nX):
+     for i in range(1,nX+1):
          tmp1 -= 4.e0/(i*i)*math.cos(i*x)
          tmp2 -= 4.e0/(i*i)*math.cos(i*y)
     #  tmp1 is the partial sum of 2pi^2/3- x(2pi-x) on [0,2pi]
@@ -221,70 +218,9 @@ def Nonlinear3and4(in_u1, in_u2, in_w, in_th, tmp1,  tmp2,  tmp3, tmp4, N4,  N3,
                         N4[jj]= z
 
                 return tmp1, tmp2, tmp3, tmp4, N4, N3
-# def do_RK2(u1_in,  u2_in, w_in,  th_in):
 
-#     # // RK2 method 
-#     # // has 2 unknowns to solve: w (vorticity) and th (theta)
-#     # // work in Fourier space
-#     k1_w  = np.empty((local_n0, N1), dtype=np.complex128)
-#     k1_th = np.empty((local_n0, N1), dtype=np.complex128)
-#     k2_w  = np.empty((local_n0, N1), dtype=np.complex128)
-#     k2_th = np.empty((local_n0, N1), dtype=np.complex128)
-#     # //intermediate values:
-#     w_tp  = np.empty((local_n0, N1), dtype=np.complex128)
-#     th_tp = np.empty((local_n0, N1), dtype=np.complex128)
-#     u1_tp = np.empty((local_n0, N1), dtype=np.complex128)
-#     u2_tp = np.empty((local_n0, N1), dtype=np.complex128)
-#     # // RHS of 3 equations:
-#     g1tmp_local  = np.empty((local_n0, N1), dtype=np.complex128)
-#     f3tmp_local  = np.empty((local_n0, N1), dtype=np.complex128)
-#     jj = 0
-
-#     # //step 1
-#     # //g1tmp is external term of equation of w_t
-#     # //f3tmp is external term of equation of theta_t
-#     for i in range(local_n0):
-        
-#        for j in range(N1):
-#           jj = i*N1+j
-#           x=L*(local_start+i)/N0
-#           y=L*j/N1
-#           g1tmp_local[jj] = g1_func(t, x, y, ConvTest, nu) + 0.0j
-#           f3tmp_local[jj] = f3_func(t, x, y,ConvTest ) + 0.0j
-
-#     g1tmp_local = np.fft.fftn(g1tmp_local.reshape(local_n0, N1), norm=None).ravel()
-#     f3tmp_local = np.fft.fftn(f3tmp_local.reshape(local_n0, N1), norm=None).ravel()
-
-#     RHS(k1_w, k1_th, u1_in, u2_in, th_in, w_in, g1tmp_local, f3tmp_local, t)
-#     in1_plus_a_in2(w_tp,  w_in,  k1_w,  dt)
-#     in1_plus_a_in2(th_tp, th_in, k1_th, dt)
-
-#     ComputeUVfromVort(w_tp,  u1_tp,  u2_tp)
-
-#     # step 2
-#     for i in range(local_n0):
-#        for j in range(N1):
-#           jj = i*N1+j
-#           x=L*(local_start+i)/N0
-#           y=L*j/N1
-#           g1tmp_local[jj] = g1_func(t+dt, x, y) + 0.0j
-#           f3tmp_local[jj] = f3_func(t+dt, x, y) + 0.0j
-
-
-#     g1tmp_local = np.fft.fftn(g1tmp_local.reshape(local_n0, N1), norm=None).ravel()
-#     f3tmp_local = np.fft.fftn(f3tmp_local.reshape(local_n0, N1), norm=None).ravel()
-    
-#     # k2 is F(tn+dt, u_n+dt*k1) of ODE u_t=F(t,u)
-#     RHS(k2_w, k2_th, u1_tp, u2_tp, th_tp, w_tp, g1tmp_local, f3tmp_local, t+dt)
-
-#     for i in range(local_n0):
-#         for j in range(N1):
-#             jj = i*N1+j;
-
-#             w_in[jj]  += dt * (k1_w[jj]  + k2_w[jj] ) / 2.0
-#             th_in[jj] += dt * (k1_th[jj] + k2_th[jj] ) / 2.0
 def do_RK2(u1_in, u2_in, w_in, th_in):
-#     # // RK2 method 
+#     # // RK2 method
 #     # // has 2 unknowns to solve: w (vorticity) and th (theta)
 #     # // work in Fourier space
     size = local_n0 * N1
@@ -414,8 +350,8 @@ def RHS_k1_w_th(u1_in, u2_in, th_in, w_in, k1_w,  k1_th, t,dt, L):
 def RHS_BE(k_w, k_th, in_u1, in_u2, in_th, in_w, g1tmp_local, f3tmp_local, time_spec):
 
     # compute RHS of ODE in Fourier space without diffusion terms
-    # input: in_* for *=u1, u2, th (theta), pr (pressure) 
-    # output: RHS k_* for *=u1, u2, th (theta), pr (pressure) 
+    # input: in_* for *=u1, u2, th (theta), pr (pressure)
+    # output: RHS k_* for *=u1, u2, th (theta), pr (pressure)
     # k is F(y,t) in ODE dy/dt=F(y,t) without diffusion
     # both input and output are in Fourier mod
     # The following arrays denote temporary ones in computing N5 and N6:
@@ -425,10 +361,10 @@ def RHS_BE(k_w, k_th, in_u1, in_u2, in_th, in_w, g1tmp_local, f3tmp_local, time_
     tmp4 = np.zeros(local_n0 * N1, dtype=np.complex128)
     N4   = np.zeros(local_n0 * N1, dtype=np.complex128)
     N3   = np.zeros(local_n0 * N1, dtype=np.complex128)
-    
+
     # Nonlinear terms N11, N12, N2, N3:
     #  Prepare for nonlinear calculation:
-    N3, N4,in_u1, in_u2, in_w, in_th = PreNonlinear(in_u1, in_u2, in_w, in_th, N4, N3, time_spec); 
+    N3, N4,in_u1, in_u2, in_w, in_th = PreNonlinear(in_u1, in_u2, in_w, in_th, N4, N3, time_spec);
     #  Step 1: Collect terms of (u\cdot\nabla)u to N11, N12 and N2:
     tmp1, tmp2, tmp3,tmp4 , N4, N3 =  Nonlinear3and4(in_u1, in_u2, in_w, in_th, tmp1, tmp2, tmp3, tmp4, N4, N3, time_spec);
     #  After all for nonlinear terms,  convert these quantities to Fourier space:
@@ -493,10 +429,8 @@ def do_IMEX(u1_in,   u2_in, w_in,   th_in):
             tmp1 = 1.0 + dt*nu*k1sq
             tmp2 = 1.0 + dt*eta*k2sq
 
-            w_in[jj][0]  = ( w_in[jj][0]  + dt*k1_w[jj][0] )/tmp1
-            w_in[jj][1]  = ( w_in[jj][1]  + dt*k1_w[jj][1] )/tmp1
-            th_in[jj][0] = ( th_in[jj][0] + dt*k1_th[jj][0] )/tmp2
-            th_in[jj][1] = ( th_in[jj][1] + dt*k1_th[jj][1] )/tmp2
+            w_in[jj]  = ( w_in[jj]  + dt*k1_w[jj] )/tmp1
+            th_in[jj] = ( th_in[jj] + dt*k1_th[jj])/tmp2
 
 
 def ComputeUVfromVort(w_in, u1_in, u2_in):
@@ -538,56 +472,119 @@ def ComputeUVfromVort(w_in, u1_in, u2_in):
         u2_in = np.fft.ifftn(u2_in.reshape(local_n0, N1), norm="forward").real.ravel()
         w_in  = np.fft.ifftn(w_in.reshape(local_n0, N1),  norm="forward").real.ravel()
 
+def do_BDF2(u1_in, u2_in, wo_in, w_in, wn_in, tho_in, th_in, thn_in, k1_w_old, k1_th_old):
+    """
+    Python port of the C do_BDF2:
+      - Build real RHS in physical space (g1, f3)
+      - Put them in complex buffers (imag=0)
+      - Complex FFT to spectral space (same shape as inputs)
+      - Call RHS_BE to fill k1_w, k1_th
+      - BDF2 update for w and theta in spectral space
+    Assumes all *_in arrays are 1D complex (length alloc_local), laid out row-major (i*N1 + j).
+    """
 
-def do_BDF2(u1_in,u2_in, wo_in,   w_in, wn_in, tho_in,  th_in, thn_in, k1_w_old, k1_th_old):
+    # --- allocate complex (not float) because we work in spectral space after FFT
+    k1_w        = np.empty(alloc_local, dtype=np.complex128)
+    k1_th       = np.empty(alloc_local, dtype=np.complex128)
+    g1tmp_local = np.empty(alloc_local, dtype=np.complex128)
+    f3tmp_local = np.empty(alloc_local, dtype=np.complex128)
 
-    # BDF2 method on linear terms, 2nd order extrapolation on nonlinear terms
-    # (3*u1n_in - 4*u1_in + 1*u1o_in)/(2dt) = f
-    # Add Shen and Yang 2010 's stability term
-    # has 3 unknowns to solve: u1, u2, th (theta), pr (pressure)
-    # work in Fourier space
-    # k1_pr_old is not used
-    k1_w        = np.empty(alloc_local,  dtype=float)
-    k1_th       = np.empty(alloc_local,  dtype=float)
-    # RHS of 3 equations:
-    g1tmp_local = np.empty(alloc_local, dtype=float)
-    f3tmp_local = np.empty(alloc_local, dtype=float)
-    # g1tmp is external term of equation of w_t
-    # f3tmp is external term of equation of theta_t
+    # --- build RHS in physical space (real), store into complex buffers (imag=0)
     for i in range(local_n0):
-       for j in range(N1):
-          jj = i*N1+j
-          x=L*(local_start+i)/N0
-          y=L*j/N1
-          g1tmp_local[jj] = g1_func(t, x, y) + 0.0j
-          f3tmp_local[jj] = f3_func(t, x, y) + 0.0j
+        x = L * (local_start + i) / N0
+        for j in range(N1):
+            y = L * j / N1
+            jj = i * N1 + j
+            # ensure real; keep imag=0
+            g1tmp_local[jj] = float(g1_func(t, x, y, ConvTest, nu))
+            f3tmp_local[jj] = float(f3_func(t, x, y, ConvTest))
 
-    g1tmp_local = np.fft.rfftn(g1tmp_local.reshape(local_n0, N1), norm=None).ravel()
-    f3tmp_local = np.fft.rfftn(f3tmp_local.reshape(local_n0, N1), norm=None).ravel()
-    # BDF2 should call RHS_BE
+    # --- complex FFT (same shape as inputs) — do NOT use rfftn or the size changes
+    shape2d = (local_n0, N1)
+    g1tmp_local = np.fft.fftn(g1tmp_local.reshape(shape2d), s=shape2d, norm=None).ravel()
+    f3tmp_local = np.fft.fftn(f3tmp_local.reshape(shape2d), s=shape2d, norm=None).ravel()
+
+    # If your C code applies a custom FFTW normalization, do it here to match:
+    # fftw_normalize(g1tmp_local, DIM); fftw_normalize(f3tmp_local, DIM)
+
+    # --- RHS_BE fills k1_w, k1_th in spectral space
     RHS_BE(k1_w, k1_th, u1_in, u2_in, th_in, w_in, g1tmp_local, f3tmp_local, t)
 
+    # --- BDF2 update in spectral space
     for i in range(local_n0):
+        k1 = wn[local_start + i]
+        k1sq = k1 * k1
         for j in range(N1):
-            jj = i*N1+j
-            k1 = wn[local_start + i]
+            jj = i * N1 + j
             k2 = wn[j]
-            k1sq =pow(k1,2)
-            k2sq =pow(k2,2)
-            ksq = k1sq + k2sq
+            k2sq = k2 * k2
 
-	#  below is the new u1, u2, theta:
-            tmp1 = 1.5/dt + nu*k1sq
-            tmp2 = 1.5/dt + eta*k2sq
-            wn_in[jj]  = (2 * k1_w[jj]  - k1_w_old[jj]  + (2 * w_in[jj]  - 0.5 * wo_in[jj]) / dt) / tmp1
-            thn_in[jj] = (2 * k1_th[jj] - k1_th_old[jj] + (2 * th_in[jj] - 0.5 * tho_in[jj]) / dt) / tmp2
+            # new w and theta (complex math ok; tmp1/tmp2 are real scalars)
+            tmp1 = 1.5 / dt + nu * k1sq
+            tmp2 = 1.5 / dt + eta * k2sq
 
+            wn_in[jj]  = (2.0 * k1_w[jj]  - k1_w_old[jj]  + (2.0 * w_in[jj]  - 0.5 * wo_in[jj])  / dt) / tmp1
+            thn_in[jj] = (2.0 * k1_th[jj] - k1_th_old[jj] + (2.0 * th_in[jj] - 0.5 * tho_in[jj]) / dt) / tmp2
+
+    # --- roll states (complex arrays)
     k1_w_old[:] = k1_w
     k1_th_old[:] = k1_th
+
     wo_in[:]  = w_in
     w_in[:]   = wn_in
     tho_in[:] = th_in
     th_in[:]  = thn_in
+
+
+# def do_BDF2(u1_in,u2_in, wo_in,   w_in, wn_in, tho_in,  th_in, thn_in, k1_w_old, k1_th_old):
+
+#     # BDF2 method on linear terms, 2nd order extrapolation on nonlinear terms
+#     # (3*u1n_in - 4*u1_in + 1*u1o_in)/(2dt) = f
+#     # Add Shen and Yang 2010 's stability term
+#     # has 3 unknowns to solve: u1, u2, th (theta), pr (pressure)
+#     # work in Fourier space
+#     # k1_pr_old is not used
+#     k1_w        = np.empty(alloc_local, dtype=np.complex128)
+#     k1_th       = np.empty(alloc_local, dtype=np.complex128)
+#     # RHS of 3 equations:
+#     g1tmp_local = np.empty(alloc_local, dtype=np.complex128)
+#     f3tmp_local = np.empty(alloc_local, dtype=np.complex128)
+#     # g1tmp is external term of equation of w_t
+#     # f3tmp is external term of equation of theta_t
+#     for i in range(local_n0):
+#        for j in range(N1):
+#           jj = i*N1+j
+#           x=L*(local_start+i)/N0
+#           y=L*j/N1
+#           g1tmp_local[jj] = g1_func(t, x, y, ConvTest, nu)
+#           f3tmp_local[jj] = f3_func(t, x, y, ConvTest)
+
+#     g1tmp_local = np.fft.rfftn(g1tmp_local.reshape(local_n0, N1), norm=None).ravel()
+#     f3tmp_local = np.fft.rfftn(f3tmp_local.reshape(local_n0, N1), norm=None).ravel()
+#     # BDF2 should call RHS_BE
+#     RHS_BE(k1_w, k1_th, u1_in, u2_in, th_in, w_in, g1tmp_local, f3tmp_local, t)
+
+#     for i in range(local_n0):
+#         for j in range(N1):
+#             jj = i*N1+j
+#             k1 = wn[local_start + i]
+#             k2 = wn[j]
+#             k1sq =pow(k1,2)
+#             k2sq =pow(k2,2)
+#             ksq = k1sq + k2sq
+
+# 	#  below is the new u1, u2, theta:
+#             tmp1 = 1.5/dt + nu*k1sq
+#             tmp2 = 1.5/dt + eta*k2sq
+#             wn_in[jj]  = (2 * k1_w[jj]  - k1_w_old[jj]  + (2 * w_in[jj]  - 0.5 * wo_in[jj]) / dt) / tmp1
+#             thn_in[jj] = (2 * k1_th[jj] - k1_th_old[jj] + (2 * th_in[jj] - 0.5 * tho_in[jj]) / dt) / tmp2
+
+#     k1_w_old[:] = k1_w
+#     k1_th_old[:] = k1_th
+#     wo_in[:]  = w_in
+#     w_in[:]   = wn_in
+#     tho_in[:] = th_in
+#     th_in[:]  = thn_in
 
 
 def in1_plus_a_in2(out, in1, in2, a):
@@ -634,7 +631,7 @@ def CompNormsInFourierSpace(u1_local, u2_local, th_local, u1, u2, th):
         D2_tilde_th_H2sq = 0.0
       #   Note: FFTW does not divide by N0*N1 after fotward DFT, so we have to divide it
         DIV= 0;
-        if( my_rank == 0):
+        if my_rank == 0:
             tilde_th_L2 = 0
             th_L2 = 0
             tilde_u_L2 = 0
@@ -876,12 +873,12 @@ def MakeAverageZero(th_local, th_all):
             ).ravel()
 
 def ComputeThetaAverage(th_local, th_all, DIM):
-       InitAverage = [None] * 100000  
+       InitAverage = [0] * 100000
        if( IN_FOURIER_SPACE[0]=='y'):
 
         th_local = np.fft.fftn(th_local.reshape(local_n0, N1),s=(local_n0, N1),norm=None).ravel()
         fftw_normalize(th_local, DIM)
-       if( my_rank == 0 ):
+       if my_rank == 0 :
           #compute InitAverage:
           if(t < 1e-10 ):
              for j in range(N1):
@@ -889,7 +886,6 @@ def ComputeThetaAverage(th_local, th_all, DIM):
                  for i in range(N0):
                      jj=i*N1+j
                      tmp += th_all[jj].real
-
                  InitAverage[j] = tmp/N0
 
 
@@ -904,6 +900,8 @@ def ComputeThetaAverage(th_local, th_all, DIM):
               tmp = math.fabs(tmp/N0- InitAverage[j])
               AveErrmaxtoinit = max(AveErrmaxtoinit, tmp)
 
+
+
        if( IN_FOURIER_SPACE[0]=='y'):
              th_local = np.fft.fftn(th_local.reshape(local_n0, N1),s=(local_n0, N1),norm=None).ravel()
 
@@ -917,6 +915,8 @@ def SetExactVort(w_local, time_spec):
 
         fftw_normalize(w_local)
 
+
+
       for i in range(local_n0):
         for  j in range(N1):
          jj=i*N1+j
@@ -926,9 +926,14 @@ def SetExactVort(w_local, time_spec):
          w_local[jj].real = winitFunc(time_spec, x,y)
          w_local[jj].image = 0
 
+
+
+
       if( IN_FOURIER_SPACE[0]=='y'):
         #   convert to physical space:
           w_local = np.fft.fftn(w_local.reshape(local_n0, N1),s=(local_n0, N1),norm=None).ravel()
+
+
 
 def Output_Data(u1_local, u2_local, th_local, u1_all,   u2_all,   th_all,  w_local,  w_all):
 
@@ -959,13 +964,18 @@ def Output_Data(u1_local, u2_local, th_local, u1_all,   u2_all,   th_all,  w_loc
           th_local = np.fft.rfftn(th_local.reshape(local_n0, N1), s=(local_n0, N1), norm=None).ravel()
           w_local  = np.fft.rfftn(w_local.reshape(local_n0, N1),  s=(local_n0, N1), norm=None).ravel()
 
-from mpi4py_fft import PFFT, newDistArray
-from mpi4py import MPI
+def InitVariables(w_local, th_local):
+    if my_rank != 0:
+        return
+    for i in range(N0):
+        x = L * i / N0
+        base = i * N1
+        for j in range(N1):
+            y  = L * j / N1
+            jj = base + j
+            w_all[jj]  = complex(winitFunc(0.0, x, y), 0.0)
+            th_all[jj] = complex(thinitFunc(0.0, x, y), 0.0)
 
-import numpy as np
-
-import numpy as np
-from mpi4py import MPI
 
 def fftw_normalize(u, DIM):
     """Normalize like fftw_normalize in C."""
@@ -1037,20 +1047,6 @@ def CompCFLcondition(u1_local, u2_local, u1_all, u2_all,
 
     return CFL_break, umax, h, u1_local, u2_local, u1_all, u2_all
 
-def InitVariables(w_local,  th_local):
-
-    for i in range(local_n0):
-        for  j in range(N1):
-            jj=i*N1+j
-            x=L*(local_start+i)/N0
-            y=L*j/N1
-
-            w_local[jj].real = winitFunc(0, x,y)
-            w_local[jj].imag = 0
-
-            th_local[jj].real= thinitFunc(0, x,y)
-            th_local[jj].imag= 0
-
 def test_909(w):
 
 
@@ -1074,6 +1070,8 @@ def InitFFTW(wo_local, w_local, tho_local, th_local,
     u1_local[:]  = np.fft.fftn(u1_local.reshape(local_n0, N1)).ravel()
     u2o_local[:] = np.fft.fftn(u2o_local.reshape(local_n0, N1)).ravel()
     u2_local[:]  = np.fft.fftn(u2_local.reshape(local_n0, N1)).ravel()
+
+
 import math
 from mpi4py import MPI
 
@@ -1121,6 +1119,7 @@ DIV = 0.0
 umax = 0.0
 AveErrmaxtoinit = 0.0
 
+# -------------- put your existing helpers above this line --------------
 # (do_IMEX, do_BDF2, do_RK2, ComputeUVfromVort, CompNormsInFourierSpace,
 #  ComputeThetaAverage, MakeAverageZero, Output_Data, DefineWnWnabs, read_input,
 #  read_data, Read_VorTemp, filter_exp, filter_Krasny, assign, in1_plus_a_in2, etc.)
@@ -1134,14 +1133,14 @@ def _split_rows(total_rows: int, size: int, rank: int):
     return n0, start
 
 def main():
-    global N0, N1, DIM, METHOD, TMAX, dt, dt_print, dt_norms, eta, nu, WuEps
+    global N0, N1, DIM, METHOD, TMAX, dt, dt_print, dt_norms, eta, nu, WuEpsi
     global        restart, irestart, ConvTest, ShenYang, USE_Filter, Filter_alpha
     global     Filter_noiselevel, my_rank, nprocs, alloc_local, local_n0
     global       local_start, IN_FOURIER_SPACE, wn, wn_abs_local, t, iout
     global    iter_print, iter_norms, CFL_break, Integral1, Integral2, Integral3
     global        WuQ1, WuQ2, WuQ3, ThQ1, ThQ2, ThQ3, UQ1, UQ2, UQ3, DIV, umax
     global       AveErrmaxtoinit
-  
+
     comm = MPI.COMM_WORLD
     my_rank = comm.Get_rank()
     nprocs = comm.Get_size()
@@ -1185,7 +1184,6 @@ def main():
         print(f"dt_norms = {dt_norms:.6f}, iter_norms={iter_norms}")
         print(f"dt = {dt:.6e}")
         print(f"N0, N1 = {N0}, {N1}")
-        L = 2*math.pi
         print(f"hx, hy = {L/N0:12.5e}, {L/N1:12.5e}")
 
     local_n0, local_start = _split_rows(N0, nprocs, my_rank)
@@ -1198,25 +1196,27 @@ def main():
         print(f"alloc_local = {alloc_local}")
 
     # local fields (complex128)
-    u1_local  = np.zeros(alloc_local, dtype=float)
-    u1o_local = np.zeros(alloc_local, dtype=float)
-    u2_local  = np.zeros(alloc_local, dtype=float)
-    u2o_local = np.zeros(alloc_local, dtype=float)
-    th_local  = np.zeros(alloc_local, dtype=float)
-    tho_local = np.zeros(alloc_local, dtype=float)
-    thn_local = np.zeros(alloc_local, dtype=float)
-    w_local   = np.zeros(alloc_local, dtype=float)
-    wo_local  = np.zeros(alloc_local, dtype=float)
-    wn_local  = np.zeros(alloc_local, dtype=float)
+# if these will hold Fourier-space values at any point, make them complex
+    u1_local  = np.zeros(alloc_local, dtype=np.complex128)
+    u1o_local = np.zeros(alloc_local, dtype=np.complex128)
+    u2_local  = np.zeros(alloc_local, dtype=np.complex128)
+    u2o_local = np.zeros(alloc_local, dtype=np.complex128)
+    th_local  = np.zeros(alloc_local, dtype=np.complex128)
+    tho_local = np.zeros(alloc_local, dtype=np.complex128)
+    thn_local = np.zeros(alloc_local, dtype=np.complex128)
+    w_all = np.empty(DIM, dtype=np.complex128)
+    w_local   = np.zeros(alloc_local, dtype=np.complex128)
+    wo_local  = np.zeros(alloc_local, dtype=np.complex128)
+    wn_local  = np.zeros(alloc_local, dtype=np.complex128)  # if you store Fourier wn
 
-    k1_w_old  = np.zeros(alloc_local, dtype=float)
-    k1_th_old = np.zeros(alloc_local, dtype=float)
+    k1_w_old  = np.zeros(alloc_local, dtype=np.complex128)
+    k1_th_old = np.zeros(alloc_local, dtype=np.complex128)
 
-    u1_all = np.zeros(DIM, dtype=float) if my_rank == 0 else np.empty(0, dtype=float)
-    u2_all = np.zeros(DIM, dtype=float) if my_rank == 0 else np.empty(0, dtype=float)
-    th_all = np.zeros(DIM, dtype=float) if my_rank == 0 else np.empty(0, dtype=float)
+    th_all = np.zeros(DIM, dtype=np.complex128)  # not float
+    u1_all = np.zeros(DIM, dtype=np.complex128)
+    u2_all = np.zeros(DIM, dtype=np.complex128)
     wo_all = np.zeros(DIM, dtype=float) if my_rank == 0 else np.empty(0, dtype=float)
-    
+
     wn, wn_abs_local = DefineWnWnabs(N0, N1, local_n0, local_start)
     t = 0.0
     iout = 0
@@ -1225,11 +1225,16 @@ def main():
     if restart[0].lower() == 'n':
         # root prepares initial w, theta
         if my_rank == 0:
-            w_all = Read_VorTemp(N0, N1)
+            # w_all = Read_VorTemp(N0, N1)
+            InitVariables(w_local, th_local)
+        comm.Bcast([w_all,  MPI.COMPLEX16], root=0)
+        comm.Bcast([th_all, MPI.COMPLEX16], root=0)
+        # scatter to ranks (equal blocks of length alloc_local)
+        comm.Scatter([w_all,  MPI.COMPLEX16], [w_local,  MPI.COMPLEX16], root=0)
+        comm.Scatter([th_all, MPI.COMPLEX16], [th_local, MPI.COMPLEX16], root=0)
 
-        # # scatter to ranks (equal blocks of length alloc_local)
-        # comm.Scatter([w_all,  MPI.COMPLEX16], [w_local,  MPI.COMPLEX16], root=0)
-        # comm.Scatter([th_all, MPI.COMPLEX16], [th_local, MPI.COMPLEX16], root=0)
+        IN_FOURIER_SPACE[0] = 'n'
+        ComputeUVfromVort(w_local, u1_local, u2_local)
 
         MakeAverageZero(th_local, th_all)
         MakeAverageZero(u1_local, u1_all)
@@ -1245,7 +1250,7 @@ def main():
         if my_rank == 0:
             # read into global arrays on root
             t, Integral1, Integral2, Integral3 = read_data(u1_all, u2_all, th_all, w_all, N0, N1, irestart)
-        # broadcast current time and integrals
+        # broadcast current time (and integrals if you use them elsewhere)
         t = comm.bcast(t, root=0)
 
         iout        = int(math.ceil(t / dt_print))
@@ -1268,13 +1273,12 @@ def main():
             print("This input for restart is invalid")
         MPI.Finalize()
         return
-    print("here/n/n")
 
-
-    # Fourier space 
+    #  go to Fourier space
     InitFFTW(wo_local, w_local, tho_local, th_local, u1o_local, u1_local, u2o_local, u2_local)
     IN_FOURIER_SPACE[0] = 'y'
 
+    #  test initial norms
     CompNormsInFourierSpace(u1_local, u2_local, th_local, u1_all, u2_all, th_all)
     ComputeThetaAverage(th_local, th_all, DIM)
 
@@ -1287,7 +1291,7 @@ def main():
                     f"{UQ1:12.5e}  {UQ2:12.5e}  {UQ3:12.5e}\n")
             print(f"ThQ1={ThQ1:12.5e},  ThQ2={ThQ2:12.5e}")
 
-    # Main loop
+    #  main time loop
     for it in range(iter_start, max_iter):
         # CFL check
         shape = N0*N1
@@ -1296,7 +1300,7 @@ def main():
           u1_local, u2_local, u1_all, u2_all,
           IN_FOURIER_SPACE, N0, N1, dt, L,
           comm, my_rank
-        ) 
+        )
         if CFL_break == 1:
             Output_Data(u1_local, u2_local, th_local, u1_all, u2_all, th_all, w_local, w_all)
             if my_rank == 0:
@@ -1316,7 +1320,7 @@ def main():
                 assign(tho_local, th_local)
                 assign(u1o_local, u1_local)
                 assign(u2o_local, u2_local)
-            
+
                 RHS_k1_w_th(u1o_local, u2o_local, tho_local, wo_local, k1_w_old, k1_th_old, dt,t, L)
                 do_RK2(u1_local, u2_local, w_local, th_local)
                 ComputeUVfromVort(w_local, u1_local, u2_local)
@@ -1333,8 +1337,6 @@ def main():
 
         # advance time
         t += dt
-
-        # optional filters
         if USE_Filter == 1:
             filter_exp(u1_local, Filter_alpha)
             filter_exp(u2_local, Filter_alpha)
@@ -1359,18 +1361,15 @@ def main():
                         f"{UQ1:12.5e}  {UQ2:12.5e}  {UQ3:12.5e}\n")
                 print(f"ThQ1={ThQ1:12.5e},  ThQ2={ThQ2:12.5e}")
 
-
         # periodic output
         if (it + 1) % iter_print == 0:
             iout += 1
             if my_rank == 0:
                 print(f"iter, time = {it+1}, {t}")
             Output_Data(u1_local, u2_local, th_local, u1_all, u2_all, th_all, w_local, w_all)
+
+    #  finalize
     MPI.Finalize()
 
-
-# If you want this file to be executable:
 if __name__ == "__main__":
     main()
-
-
