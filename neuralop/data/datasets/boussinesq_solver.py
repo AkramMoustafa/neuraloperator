@@ -1,4 +1,4 @@
-"""
+r"""
 August 13, 2025
  * Xiaoming Zheng
  * Edited by Akram Moustafa
@@ -17,24 +17,17 @@ Purpose: finding solution
    D_tt theta - (eta D_22 + nu D_11) D_t theta + nu*eta*D_11 D_22 theta + D_11 Laplace^{-1} theta = N6
 
 where
-   N5 = - (D_t - eta D_22) P(u\cdot \nabla u)     + \nabla^\perp D_1 \Laplace^{-1} (u\cdot \nabla theta)
-   N6 = - (D_t - nu  D_11) (u\cdot \nabla theta)  + u\cdot \nabla u_2 - D_2 Laplace^{-1} \nabla (u\cdot \nabla u)
+   N5 = - (D_t - η D_22) P(u·∇u) + ∇^⊥ D_1 Laplace⁻¹(u·∇θ)
+   N6 = - (D_t - ν D_11)(u·∇θ) + u·∇u₂ - D_2 Laplace⁻¹ ∇(u·∇u)
 
 where P is Leray's projection, that is,
-   P(u) = u - \nabla Laplace^{-1} (\nabla\cdot u)
+   P(u) = u - \nabla \Laplace^{-1} (\nabla\cdot u)
 
 Method: convert to first order differential system on t: introducing new variables
    v1  = D_t u1
    v2  = D_t u2
    ps = D_t theta
 """
-import numpy as np
-import math
-import configparser
-import matplotlib.pyplot as plt
-
-PI = 3.14159265358979323846264338327950288419716939937510582097494459230781
-L = 2*PI;A = 3.0
 
 def g1_func(t, x, y,ConvTest, nu):
 
@@ -117,19 +110,16 @@ def prinitFunc( t,  x,  y):
 
 def thinitFunc( t,  x,  y):
 # // initial value of theta
-  if(ConvTest):
-     return math.cos(t)*pow(math.sin(A*x),2)*math.sin(2*A*y)
-  else:
-     nX=4
-     tmp0 = 4*(1.e0 + 1.e0/4 + 1.e0/9 + 1.e0/16)
-     tmp1 = tmp0
-     tmp2 = tmp0
-     for i in range(1,nX+1):
-         tmp1 -= 4.e0/(i*i)*math.cos(i*x)
-         tmp2 -= 4.e0/(i*i)*math.cos(i*y)
-    #  tmp1 is the partial sum of 2pi^2/3- x(2pi-x) on [0,2pi]
-     return WuEpsi*math.cos(t)* (tmp1 * tmp2 - tmp0*tmp0)
-
+    if ConvTest:
+        return np.cos(t) * (np.sin(A * x) ** 2) * np.sin(2 * A * y)
+    else:
+        nX = 4
+        tmp0 = 4 * (1.0 + 1.0/4 + 1.0/9 + 1.0/16)
+        tmp1 = tmp0 - np.sum([4.0/(i*i) * np.cos(i * x) for i in range(1, nX+1)], axis=0)
+        tmp2 = tmp0 - np.sum([4.0/(i*i) * np.cos(i * y) for i in range(1, nX+1)], axis=0)
+          #  return WuEpsi*math.cos(t)* (tmp1 * tmp2 - tmp0*tmp0)
+        return WuEpsi * np.cos(t) * (tmp1 * tmp2 - tmp0 * tmp0)
+      
 def u1initFunc( t,  x,  y):
   if(ConvTest):
      return math.cos(t)*pow(math.sin(A*x),2)*math.sin(2*A*y)
@@ -142,60 +132,35 @@ def u2initFunc( t,  x,  y):
   else:
      return -WuEpsi*math.cos(t)*math.sin(2*A*x)*pow(math.sin(A*y),2)
 
-def AfterNonlinear( in_u1, in_u2, w_in, in_th, time_spec):
+def AfterNonlinear( u1, u2, w, th, time_spec):
 
-    in_u1 = np.fft.fftn(
-        in_u1.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).ravel()
+    u1 = np.fft.fftn(u1, norm="backward")
+    u2 = np.fft.fftn(u2, norm="backward")
+    th = np.fft.fftn(th, norm="backward")
+    w  = np.fft.fftn(w,  norm="backward")
 
-    in_u2 = np.fft.fftn(
-        in_u2.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).ravel()
+    return u1, u2, w, th
 
-    in_th = np.fft.fftn(
-        in_th.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).ravel()
-
-    w_in = np.fft.fftn(
-        w_in.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).ravel()
-
-    return in_u1, in_u2, w_in, in_th
-
-def PreNonlinear(in_u1, in_u2, w_in, in_th,N3, N4 , time_spec):
+def PreNonlinear(u1, u2, w, th,N3, N4 , time_spec):
 
     # Above all, convert input quantities to Physical space:
-    in_u1 = np.fft.ifftn(in_u1.reshape(N0, N1),axes=(0, 1),norm="backward").real.ravel()
-    in_u2 = np.fft.ifftn(in_u2.reshape(N0, N1),axes=(0, 1),norm="backward").real.ravel()
-    in_th = np.fft.ifftn(in_th.reshape(N0, N1),axes=(0, 1),norm="backward").real.ravel()
-    w_in = np.fft.ifftn(w_in.reshape(N0, N1),axes=(0, 1),norm="backward").real.ravel()
+    u1 = np.fft.ifftn(u1,norm="backward").real
+    u2 = np.fft.ifftn(u2,norm="backward").real
+    th = np.fft.ifftn(th,norm="backward").real
+    w = np.fft.ifftn(w,norm="backward").real
     # divide them by DIM because FFTW does not perform it:
-    # in_u1 = fftw_normalize(in_u1, DIM)
-    # in_u2 = fftw_normalize(in_u2, DIM)
-    # in_th = fftw_normalize(in_th, DIM)
-    # w_in = fftw_normalize(w_in, DIM)
     # initialize N5 and N6:
-    for i in range(N0):
-        for j in range(N1):
-            jj = i * N1 + j
-            N3[jj] = 0.0 + 0.0j
-            N4[jj] = 0.0 + 0.0j
+    N3[:] = 0.0 + 0.0j
+    N4[:] = 0.0 + 0.0j
 
-    return N3, N4,in_u1, in_u2, w_in, in_th
-def Nonlinear3and4(in_u1, in_u2, w_in, in_th, tmp1,  tmp2,  tmp3, tmp4, N4,  N3, time_spec):
+    return N3, N4,u1, u2, w, th
+def Nonlinear3and4(u1, u2, w, th, tmp1,  tmp2,  tmp3, tmp4, N4,  N3, time_spec):
 
     # computer N3=- (u\cdot\nabla)\theta
     # computer N4=- (u\cdot\nabla) w
     # Denote z = hat (u\cdot nabla)\theta = hat( div(u*theta) ):
     #          = hat( D_1(u1*theta) + D_2(u2*theta) )
+
 
     # first we need u1*theta, u1*theta in Physical space
     for i in range(N0):
@@ -207,16 +172,16 @@ def Nonlinear3and4(in_u1, in_u2, w_in, in_th, tmp1,  tmp2,  tmp3, tmp4, N4,  N3,
     x=L*(i)/N0
     y=L*j/N1
 
-    tmp1[jj] = in_u1[jj].real * in_th[jj].real + 0.0j  # u1*theta, real only
-    tmp2[jj] = in_u2[jj].real * in_th[jj].real + 0.0j  # u2*theta
-    tmp3[jj] = in_u1[jj].real * w_in[jj].real   + 0.0j # u1*vorticity
-    tmp4[jj] = in_u2[jj].real * w_in[jj].real   + 0.0j # u2*vorticity
+    tmp1[jj] = u1[jj].real * th[jj].real + 0.0j  # u1*theta, real only
+    tmp2[jj] = u2[jj].real * th[jj].real + 0.0j  # u2*theta
+    tmp3[jj] = u1[jj].real * w[jj].real   + 0.0j # u1*vorticity
+    tmp4[jj] = u2[jj].real * w[jj].real   + 0.0j # u2*vorticity
 
 #    second we compute the DFT of u1*theta, u2*theta:
-    tmp1 = np.fft.fftn(tmp1.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    tmp2 = np.fft.fftn(tmp2.reshape(N0, N1), axes=(0,1),  norm="backward").ravel()
-    tmp3 = np.fft.fftn(tmp3.reshape(N0, N1), axes=(0,1),  norm="backward").ravel()
-    tmp4 = np.fft.fftn(tmp4.reshape(N0, N1), axes=(0,1),  norm="backward").ravel()
+    tmp1 = np.fft.fftn(tmp1, axes=(0,1), norm="backward")
+    tmp2 = np.fft.fftn(tmp2, axes=(0,1),  norm="backward")
+    tmp3 = np.fft.fftn(tmp3, axes=(0,1),  norm="backward").ravel()
+    tmp4 = np.fft.fftn(tmp4, axes=(0,1),  norm="backward")
 #    third, compute N3 and N4:
     for i in range(N0):
         for j in range(N1):
@@ -240,28 +205,14 @@ def do_RK2(u1, u2, w, th,k1_w, k1_th, k2_w, k2_th,w_tp, th_tp, u1_tp, u2_tp,g1tm
 #     # // RK2 method
 #     # // has 2 unknowns to solve: w (vorticity) and th (theta)
 #     # // work in Fourier space
-    size = N0 * N1
-    # step 1: build forcing in physical space
-    for i in range(N0):
-        x = L*(i)/N0
-        for j in range(N1):
-            jj = i*N1 + j
-            y = L*j/N1
-            g1tmp[jj] = np.complex128(g1_func(t+dt, x, y, ConvTest, nu))
-            f3tmp[jj] = np.complex128(f3_func(t+dt, x, y, ConvTest))
+    x = (np.arange(N0) * L / N0)[:, None]   # (N0, 1)
+    y = (np.arange(N1) * L / N1)[None, :]   # (1, N1)
+    g1tmp = g1_func(t + dt, x, y, ConvTest, nu).astype(np.complex128)
+    f3tmp = f3_func(t + dt, x, y, ConvTest).astype(np.complex128)
+    
+    g1tmp = np.fft.fftn(g1tmp, norm="backward")
+    f3tmp = np.fft.fftn(f3tmp, norm="backward")
 
-    g1tmp = np.fft.fftn(
-        g1tmp.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).ravel()
-
-    # Inverse FFT
-    f3tmp = np.fft.fftn(
-        f3tmp.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).ravel()
 
     # k1
     k1_w, k1_th = RHS(k1_w, k1_th, u1,u2, th, w,
@@ -284,15 +235,13 @@ def do_RK2(u1, u2, w, th,k1_w, k1_th, k2_w, k2_th,w_tp, th_tp, u1_tp, u2_tp,g1tm
             g1tmp[jj] = np.complex128(g1_func(t, x, y, ConvTest, nu))
             f3tmp[jj] = np.complex128(f3_func(t, x, y, ConvTest))
     g1tmp = np.fft.fftn(
-        g1tmp.reshape(N0, N1),
-        axes=(0, 1),
+        g1tmp,
         norm="backward"
     ).real.ravel()
 
     # Inverse FFT
     f3tmp = np.fft.ifftn(
-        f3tmp.reshape(N0, N1),
-        axes=(0, 1),
+        f3tmp,
         norm="backward"
     ).real.ravel()
 
@@ -348,20 +297,19 @@ def RHS(k_w, k_th, u1, u2, th, w,
     # without diffusion
     k_w, k_th = RHS_BE(k_w, k_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3, N4,tmp1, tmp2, tmp3, tmp4)
 
-    # diffusion added in this loop
-    for i in range(N0):
-        for j in range(N1):
-            jj = i * N1 + j
-            k1 = wn[i]
-            k2 = wn[j]
-            k1sq = k1**2
-            k2sq = k2**2
+    k1 = wn[:, None]   # shape (N0, 1)
+    k2 = wn[None, :]   # shape (1, N1)
+    k1sq = k1**2
+    k2sq = k2**2
 
-            # diffusion for vorticity and theta
-            k_w[jj] -= nu * k1sq * w_in[jj]
-            k_th[jj] -= eta * k2sq * in_th[jj]
+    # diffusion added hgere
+    k_w -= nu * k1sq * w
+    k_th -= eta * k2sq * th
 
     return k_w, k_th
+
+
+
 def RHS_k1_w_th(u1,u2,th, w, k1_w,  k1_th, t,dt, g1tmp, f3tmp, N3,N4,tmp1, tmp2, tmp3, tmp4):
     # Purpose: find k1_w =-\nabla\cdot(u w) + \nabla_x theta + g1
     # g1 = \nabla\times (f1,f2)
@@ -370,32 +318,16 @@ def RHS_k1_w_th(u1,u2,th, w, k1_w,  k1_th, t,dt, g1tmp, f3tmp, N3,N4,tmp1, tmp2,
 
     # g1tmp is external term of equation of w_t
     # f3tmp is external term of equation of theta_t
-    for i in range(N0):
-        for j in range(N1):
-            jj = i*N1+j
-            x=L*(i)/N0
-            y=L*j/N1
-            g1tmp[jj] = g1_func(t, x, y, ConvTest, nu) + 0j
-            f3tmp[jj] = f3_func(t, x, y, ConvTest) + 0j
+    x = (np.arange(N0) * L / N0)[:, None]  
+    y = (np.arange(N1) * L / N1)[None, :]  
+    g1tmp = g1_func(t, x, y, ConvTest, nu) + 0j 
+    f3tmp = f3_func(t, x, y, ConvTest) + 0j  
 
-
-    # Forward FFT
-    g1tmp = np.fft.fftn(
-        g1tmp.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).real.ravel()
-
-    # Inverse FFT
-    f3tmp = np.fft.fftn(
-        f3tmp.reshape(N0, N1),
-        axes=(0, 1),
-        norm="backward"
-    ).real.ravel()
-
+    g1tmp = np.fft.fftn(g1tmp, axes=(0, 1), norm="backward")
+    f3tmp = np.fft.fftn(f3tmp, axes=(0, 1), norm="backward")
 
     # k1 is F(t_n, u_n) of ODE u_t=F(t,u) without diffusion terms:
-    k1_w, k1_th = RHS_BE(k1_w, k1_th,u1, u2, th, w, g1tmp, f3tmp, t,wn,  N1, N3, N4,tmp1, tmp2, tmp3, tmp4)
+    k1_w, k1_th = RHS_BE(k1_w, k1_th,u1, u2, th, w, g1tmp, f3tmp, t,wn, N3, N4,tmp1, tmp2, tmp3, tmp4)
     return k1_w, k1_th
 
 def RHS_BE(k_w, k_th, u1, u2, th, w,
@@ -411,30 +343,22 @@ def RHS_BE(k_w, k_th, u1, u2, th, w,
 
     # Nonlinear terms N11, N12, N2, N3:
     #  Prepare for nonlinear calculation:
-    N3, N4, in_u1, in_u2, w_in, in_th = PreNonlinear(in_u1, in_u2, w_in, in_th, N3,N4, t)
+    N3, N4, u1, u2, w, th = PreNonlinear(u1, u2, w, th, N3,N4, t)
     #  Step 1: Collect terms of (u\cdot\nabla)u to N11, N12 and N2:
-    tmp1, tmp2, tmp3,tmp4 , N3,N4 =  Nonlinear3and4(in_u1, in_u2, w_in, in_th, tmp1, tmp2, tmp3, tmp4, N3,N4, t)
+    tmp1, tmp2, tmp3,tmp4 , N3,N4 =  Nonlinear3and4(u1, u2, w, th, tmp1, tmp2, tmp3, tmp4, N3,N4, t)
     #  After all for nonlinear terms,  convert these quantities to Fourier space:
-    in_u1, in_u2, w_in, in_th = AfterNonlinear(in_u1, in_u2, w_in, in_th, t)
+    u1, u2, w, th = AfterNonlinear(u1, u2, w, th, t)
 
-    #  Next, add linear terms:
-    for i in range(N0):
-      for j in range(N1):
-          jj = i*N1+j #position in the 1-D local array
-          k1 = wn[i]
-          k2 = wn[j]
-          k1sq =pow(k1,2)
-          k2sq =pow(k2,2)
-          ksq = k1sq + k2sq
-
-        #  rhs of w: dw/dt = g1 -N4 + D_1 th without diffusion
-          k_w[jj] = (g1tmp[jj] - N4[jj]) - 1j * k1 * in_th[jj]
-
-        #  rhs of theta: dtheta/dt = f3 -N3 -u2  without diffusion
-          k_th[jj] = f3tmp[jj] - N3[jj] - in_u2[jj]
+    k1 = wn[:, None]        # shape (N0, 1)
+    k2 = wn[None, :]        # shape (1, N1)
+    # Next, add linear terms:
+    # rhs of w: dw/dt = g1 - N4 - i*k1*theta
+    k_w[:, :] = (g1tmp - N4) - 1j * k1 * th
+    # rhs of theta: dtheta/dt = f3 - N3 - u2
+    k_th[:, :] = f3tmp - N3 - u2
     return k_w, k_th
 
-def do_IMEX(in_u1, in_u2, w_in, in_th, k1_w, k1_th, g1tmp, f3tmp):
+def do_IMEX(k1_w, k1_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3,N4,tmp1, tmp2, tmp3, tmp4):
 
     # BE method on diffusion terms, explicit on other terms
     # u1n_in - in_u1 )/dt = f
@@ -442,37 +366,30 @@ def do_IMEX(in_u1, in_u2, w_in, in_th, k1_w, k1_th, g1tmp, f3tmp):
     # work in Fourier space
     # (f1tmp, f2tmp) is external term of equation of u_t
     # f3tmp is external term of equation of theta_t
-    for i in range(N0):
-        for j in range(N1):
-            jj = i * N1 + j
-            x = L * (i) / N0
-            y = L * j / N1
-            g1tmp[jj] = g1_func(t, x, y, ConvTest, nu) + 0j
-            f3tmp[jj] = f3_func(t, x, y, ConvTest) + 0j
+    x = (np.arange(N0) * L / N0)[:, None]   # shape (N0, 1)
+    y = (np.arange(N1) * L / N1)[None, :]   # shape (1, N1)
+    g1tmp[:, :] = g1_func(t, x, y, ConvTest, nu)
+    f3tmp[:, :] = f3_func(t, x, y, ConvTest)
 
     # Forward FFT
-    g1tmp = np.fft.fftn(g1tmp.reshape(N0, N1),axes=(0, 1),norm="backward").real.ravel()
-    f3tmp= np.fft.fftn(f3tmp.reshape(N0, N1),axes=(0, 1),norm="backward").real.ravel()
-
+    g1tmp = np.fft.fftn(g1tmp, axes=(0, 1), norm="backward")
+    f3tmp = np.fft.fftn(f3tmp, axes=(0, 1), norm="backward")
     # first, compute new u1, u2, and theta
     k1_w, k1_th = RHS_BE(k1_w, k1_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3,N4,tmp1, tmp2, tmp3, tmp4)
 
-    for i in range(N0):
-        for j in range(N1):
-            jj = i*N1+j
-            k1 = wn[i]
-            k2 = wn[j]
-            k1sq =pow(k1,2)
-            k2sq =pow(k2,2)
-            ksq = k1sq + k2sq
+    #  Diffusion terms
+    k1 = wn[:, None]   
+    k2 = wn[None, :] 
+    k1sq = k1**2
+    k2sq = k2**2
 
-        # below is the new u1, u2, theta:
-            tmp1 = 1.0 + dt*nu*k1sq
-            tmp2 = 1.0 + dt*eta*k2sq
+    denom_w  = 1.0 + dt *nu* k1sq
+    denom_th = 1.0 + dt *eta* k2sq
 
-            w_in[jj]  = ( w_in[jj]  + dt*k1_w[jj] )/tmp1
-            in_th[jj] = ( in_th[jj] + dt*k1_th[jj])/tmp2
-    return w_in, in_th
+    w  = (w  + dt * k1_w)  / denom_w
+    th = (th + dt * k1_th) / denom_th
+
+    return w, th
 
 def ComputeUVfromVort(w, u1, u2):
     r"""
@@ -483,43 +400,28 @@ def ComputeUVfromVort(w, u1, u2):
     """
     # If in physical space, move to Fourier for algebra:
     if IN_FOURIER_SPACE[0] == 'n':
-        w[:] = np.fft.fftn(w.reshape(N0, N1), norm="backward").ravel()
-
+        w = np.fft.fftn(w, norm="backward")
+    kx = wn[:, None]   # shape (N0, 1)
+    ky = wn[None, :]   # shape (1, N1)
+    ksq = kx**2 + ky**2
+    mask = ksq > 1e-12
     if not np.iscomplexobj(u1):
         u1[:] = u1.astype(np.complex128, copy=False)
     if not np.iscomplexobj(u2):
         u2[:] = u2.astype(np.complex128, copy=False)
 
-    for i in range(N0):
-        for j in range(N1):
-            jj = i*N1 + j
-            k1 = wn[i]
-            k2 = wn[j]
-            ksq = k1*k1 + k2*k2
-            if ksq > 1e-12:
-                u1[jj] = (1j * k2 / ksq) * w[jj]
-                u2[jj] = (-1j * k1 / ksq) * w[jj]
-            else:
-                u1[jj] = 0.0 + 0.0j
-                u2[jj] = 0.0 + 0.0j
+    if not np.iscomplexobj(u1):
+        u1 = u1.astype(np.complex128, copy=False)
+    if not np.iscomplexobj(u2):
+        u2 = u2.astype(np.complex128, copy=False)
+
+    u1[:] = np.where(mask, (1j * ky / ksq) * w, 0.0)
+    u2[:] = np.where(mask, (-1j * kx / ksq) * w, 0.0)
 
     if IN_FOURIER_SPACE[0] == 'n':
-      u1[:] = np.fft.ifftn(
-          u1.reshape(N0, N1),
-          axes=(0, 1),
-          norm="backward"
-      ).real.ravel()
-
-      u2[:] = np.fft.ifftn(
-          u2.reshape(N0, N1),
-          axes=(0, 1),
-          norm="backward"
-      ).real.ravel()
-
-      w[:] = np.fft.ifftn( w.reshape(N0, N1),
-          axes=(0, 1),
-          norm="backward"
-      ).real.ravel()
+        u1 = np.fft.ifftn(u1, norm="backward").real
+        u2 = np.fft.ifftn(u2, norm="backward").real
+        w  = np.fft.ifftn(w,  norm="backward").real
 
     return w, u1, u2
 
@@ -533,62 +435,50 @@ def do_BDF2(u1,u2, wo, w, wn,
     Call RHS_BE to fill k1_w, k1_th
     BDF2 update for w and theta in spectral space
     all *_in arrays are 1D complex
-    do Backward Differentiation Formula of order 2 
+    do Backward Differentiation Formula of order 2
     """
-    for i in range(N0):
-        x = L * ( i) / N0
-        for j in range(N1):
-            y = L * j / N1
-            jj = i * N1 + j
-            g1tmp[jj] = float(g1_func(t, x, y, ConvTest, nu))
-            f3tmp[jj] = float(f3_func(t, x, y, ConvTest))
+    x = (np.arange(N0) * L / N0)[:, None]  
+    y = (np.arange(N1) * L / N1)[None, :]  
 
-    shape2d = (N0, N1)
-    g1tmp = np.fft.fftn(g1tmp.reshape(shape2d), s=shape2d, norm="backward").ravel()
-    f3tmp = np.fft.fftn(f3tmp.reshape(shape2d), s=shape2d, norm="backward").ravel()
+    g1tmp = g1_func(t, x, y, ConvTest, nu) + 0j
+    f3tmp = f3_func(t, x, y, ConvTest) + 0j
+    g1tmp = np.fft.fftn(g1tmp, norm="backward").ravel()
+    f3tmp = np.fft.fftn(f3tmp, norm="backward").ravel()
+    
     k1_w, k1_th = RHS_BE(k1_w, k1_th,u1, u2, th, w,g1tmp, f3tmp, t, wn, N3, N4,tmp1, tmp2, tmp3, tmp4)
-    # BDF2 update in spectral space
-    for i in range(N0):
-        k1 = wn[i]
-        k1sq = k1 * k1
-        for j in range(N1):
-            jj = i * N1 + j
-            k2 = wn[j]
-            k2sq = k2 * k2
 
-            # new w and theta
-            denom_w = 1.5 / dt + nu * k1sq
-            denom_th = 1.5 / dt + eta * k2sq
+    k1sq = wn[:, None]
+    k2sq = wn[None, :]
 
-            wn[jj]  = (2.0 * k1_w[jj]  - k1_w_old[jj]  + (2.0 * w[jj]  - 0.5 * wo[jj])  / dt) / denom_w
-            thn[jj] = (2.0 * k1_th[jj] - k1_th_old[jj] + (2.0 * th[jj] - 0.5 * tho[jj]) / dt) / denom_th
+    denom_w  = 1.5 / dt + nu * (k1sq**2)
+    denom_th = 1.5 / dt + eta * (k2sq**2)
+
+    wn  = (2.0 * k1_w - k1_w_old + (2.0 * w - 0.5 * wo) / dt) / denom_w
+    thn = (2.0 * k1_th - k1_th_old + (2.0 * th - 0.5 * tho) / dt) / denom_th
+
     return k1_w, k1_th  ,wn,thn
 
 def in1_plus_a_in2(out, in1, in2, dt):
-    for i in range(N0):
-        for j in range(N1):
-            jj = i * N1 + j
-            out[jj] = in1[jj] + A * in2[jj]
+    out[:] = in1 + A * in2
     return out
-def fftw_normalize(arr: np.ndarray, DIM: float):
 
-    arr /= DIM
-    return arr
 def filter_Krasny(arr: np.ndarray, noise_level: float):
     mask = np.abs(arr) < noise_level
     arr[mask] = 0.0 + 0.0j
     return arr
 
 def filter_exp(in1,Filter_alpha ):
+    kx = wn[:, None]   # shape (N0, 1)
+    ky = wn[None, :]   # shape (1, N1)
 
-    filter_alpha = Filter_alpha;      #NOTE: As filter_alpha increases, l2 (l0?) decays slower.
 
-    for i in range(N0):
-        exp_fx = math.exp(-36.0 * pow(2.0 * abs(wn[i]) / float(N0), Filter_alpha))
-        for j in range(N1):
-            exp_f = exp_fx * math.exp(-36.0 * pow(2.0 * abs(wn[j]) / float(N1), Filter_alpha))
-            jj = i * N1 + j
-            in1[jj] *= exp_f
+    exp_fx = np.exp(-36.0 * (2.0 * np.abs(kx) / N0) ** Filter_alpha)
+    exp_fy = np.exp(-36.0 * (2.0 * np.abs(ky) / N1) ** Filter_alpha)
+
+    exp_filter = exp_fx * exp_fy
+    in1[:] *= exp_filter
+    return in1
+
 
     return in1
 def FindError(u1, u2, th, w):
@@ -602,30 +492,26 @@ def FindError(u1, u2, th, w):
     error_u2 = 0.0
     error_th = 0.0
     error_w  = 0.0
+    x = (np.arange(N0) * L / N0)[:, None]   # shape (N0, 1)
+    y = (np.arange(N1) * L / N1)[None, :]   # shape (1, N1)
 
-    for i in range(N0):
-        x = L * i / N0
-        for j in range(N1):
-            y  = L * j / N1
-            jj = i * N1 + j
+    if ConvTest == 1:
+        # convergence test
+        tmpu1 = abs(u1.real - u1initFunc(t, x, y))
+        tmpu2 = abs(u2.real - u2initFunc(t, x, y))
+        tmpth = abs(th.real - thinitFunc(t, x, y))
+        tmpw  = abs(w.real  - winitFunc(t, x, y))
+    else:
+        # real application
+        tmpu1 = abs(u1.real)
+        tmpu2 = abs(u2.real)
+        tmpth = abs(th.real)
+        tmpw  = abs(w.real)
 
-            if ConvTest == 1:
-                # convergence test
-                tmpu1 = abs(u1[jj].real - u1initFunc(t, x, y))
-                tmpu2 = abs(u2[jj].real - u2initFunc(t, x, y))
-                tmpth = abs(th[jj].real - thinitFunc(t, x, y))
-                tmpw  = abs(w[jj].real  - winitFunc(t, x, y))
-            else:
-                # real application
-                tmpu1 = abs(u1[jj].real)
-                tmpu2 = abs(u2[jj].real)
-                tmpth = abs(th[jj].real)
-                tmpw  = abs(w[jj].real)
-
-            error_u1 = max(error_u1, tmpu1)
-            error_u2 = max(error_u2, tmpu2)
-            error_th = max(error_th, tmpth)
-            error_w  = max(error_w,  tmpw)
+    error_u1 = np.max(tmpu1)
+    error_u2 = np.max(tmpu2)
+    error_th = np.max(tmpth)
+    error_w  = np.max(tmpw)
 
     print(f"time           is {t:12.5e}")
     print(f"u1    max norm is {error_u1:12.5e}")
@@ -637,9 +523,9 @@ def FindError(u1, u2, th, w):
 def CompNormsInFourierSpace(u1, u2, th,wn, t, d):
 # compute norms in Fourier space
     # reshape for 2D spectral grid
-    u1 = u1.reshape(N0, N1)
-    u2 = u2.reshape(N0, N1)
-    th = th.reshape(N0, N1)
+    u1 = u1
+    u2 = u2
+    th = th
 
     k1 = wn[:, None]   # shape (N0, 1)
     k2 = wn[None, :]   # shape (1, N1)
@@ -676,7 +562,7 @@ def CompNormsInFourierSpace(u1, u2, th,wn, t, d):
     DIV = np.sqrt(DIV.sum())
 
     # two scalars used in Parseval-Plancherel identity in integrals:
-    tmp4 = 2*np.pi / DIM
+    tmp4 = 2*np.pi / (N1*N0)
     tmp5 = tmp4**2
 
     # final quantities
@@ -724,7 +610,6 @@ def read_input(filename):
     cfg["USE_Filter"] = int(p["USE_Filter"])
     cfg["Filter_alpha"] = float(p["Filter_alpha"])
     cfg["Filter_noiselevel"] = float(p["Filter_noiselevel"])
-    cfg["DIM"] = cfg["N0"] * cfg["N1"]
 
     return cfg
 
@@ -809,110 +694,83 @@ def read_data(u1, u2, th, w,irestart):
 def DefineWnWnabs(N0, N1):
 
     # Build wavenumber vector
-    wn = np.zeros(N0, dtype=float)
-    for i in range(N0):
-        if i <= N0 // 2:
+    for i in range(len(wn)):
+        if i <= len(wn) // 2:
             wn[i] = float(i)
         else:
-            wn[i] = float(i - N0)
+            wn[i] = float(i - len(wn))
 
-    # Build local |k| array
+    # Full 2D |k| array (flattened)
     wn_abs_local = np.zeros(N0 * N1, dtype=float)
     for i in range(N0):
         for j in range(N1):
             jj = i * N1 + j
-            wn_abs_local[jj] = math.sqrt(wn[i]**2 + wn[j]**2)
+            kx = wn[i]
+            ky = wn[j]
+            wn_abs_local[jj] = math.sqrt(kx**2 + ky**2)
 
     return wn, wn_abs_local
-def MakeAverageZero(*fields):
-    out = []
-    for f in fields:
-        f2d = f.reshape(N0, N1)
-        f2d -= f2d.mean()
-        out.append(f2d.ravel())
-    return out
 
 
 def ComputeThetaAverage(th):
-      InitAverage = [0] * 100000
-      if( IN_FOURIER_SPACE[0]=='y'):
-
-        th = np.fft.irfftn(th.reshape(N0, N1),s=(N0, N1),norm="backward").ravel()
+      if IN_FOURIER_SPACE[0] == 'y':
+        th = np.fft.irfftn(th, norm="backward")
 
       #compute InitAverage:
-      if(t < 1e-10 ):
-          for j in range(N1):
-              tmp = 0
-              for i in range(N0):
-                  jj=i*N1+j
-                  tmp += th[jj].real
-              InitAverage[j] = tmp/N0
+      if t < 1e-10:
+        InitAverage = th.real.mean(axis=0) 
 
-      #compute err:
-      AveErrmaxtoinit = 0
-      for j in range(N1):
-          tmp = 0
-          for i in range(N0):
-              jj=i*N1+j
-              tmp += th[jj].real
+      tmp = th.real.mean(axis=0)     
+      ff = tmp - InitAverage
+      AveErrmaxtoinit = tmp.max()
 
-          tmp = math.fabs(tmp/N0- InitAverage[j])
-          AveErrmaxtoinit = max(AveErrmaxtoinit, tmp)
+      if IN_FOURIER_SPACE[0] == 'y':
+        th = np.fft.fftn(th, norm="backward")
 
-      if( IN_FOURIER_SPACE[0]=='y'):
-            th = np.fft.fftn(th.reshape(N0, N1),s=(N0, N1),norm="backward").ravel()
       return AveErrmaxtoinit, th
-
 
 def SetExactVort(w, time_spec):
 
       if( IN_FOURIER_SPACE[0]=='y'):
         #   convert to physical space:
-                  #   convert to physical space:
-        w = np.fft.irfftn(w.reshape(N0, N1),s=(N0, N1),norm="backward").ravel()
-      for i in range(N0):
-        for  j in range(N1):
-         jj=i*N1+j
-         x=L*(i)/N0
-         y=L*j/N1
+        w = np.fft.irfftn(w,norm="backward").real()
 
-         w[jj].real = winitFunc(time_spec, x,y)
-         w[jj].imag = 0
+      x = (np.arange(N0) * L / N0)[:, None]  
+      y = (np.arange(N1) * L / N1)[None, :]
 
-      if( IN_FOURIER_SPACE[0]=='y'):
-        #   convert to physical space:
-          w = np.fft.fftn(w.reshape(N0, N1),s=(N0, N1),norm="backward").ravel()
+      w = winitFunc(time_spec, x, y).astype(np.complex128)
+      w.imag[:] = 0.0
+      if IN_FOURIER_SPACE[0] == 'y':
+          w = np.fft.fftn(w, norm="backward")
       return w
+
 def output_data(u1, u2, th, w):
       print("first test IOUT",iout)
       if( IN_FOURIER_SPACE[0]=='y'):
         # Convert to physical space (inverse FFT + normalization)
-        u1 = np.fft.irfftn(u1.reshape(N0, N1), s=(N0, N1), norm="backward").ravel()
-        u2 = np.fft.irfftn(u2.reshape(N0, N1), s=(N0, N1), norm="backward").ravel()
-        th = np.fft.irfftn(th.reshape(N0, N1), s=(N0, N1), norm="backward").ravel()
-        w  = np.fft.irfftn(w.reshape(N0, N1),  s=(N0, N1), norm="backward").ravel()
+        u1 = np.fft.irfftn(u1, norm="backward")
+        u2 = np.fft.irfftn(u2, norm="backward")
+        th = np.fft.irfftn(th, norm="backward")
+        w  = np.fft.irfftn(w,  norm="backward")
 
         printreal(u1, u2, th, w,t, Integral1, Integral2, Integral3, iout, CFL_break, N0, N1);
         FindError(u1, u2, th, w)
 
       if( IN_FOURIER_SPACE[0]=='y'):
         #   convert to Fourier space:
-        u1 = np.fft.fftn(u1.reshape(N0, N1), s=(N0, N1),norm="backward").ravel()
-        u2 = np.fft.fftn(u2.reshape(N0, N1), s=(N0, N1), norm="backward").ravel()
-        th = np.fft.fftn(th.reshape(N0, N1), s=(N0, N1), norm="backward").ravel()
-        w  = np.fft.fftn(w.reshape(N0, N1),  s=(N0, N1), norm="backward").ravel()
+        u1 = np.fft.fftn(u1, norm="backward")
+        u2 = np.fft.fftn(u2, norm="backward")
+        th = np.fft.fftn(th, norm="backward")
+        w  = np.fft.fftn(w,  norm="backward")
       return u1, u2, th, w
 
 def InitVariables(w, th):
 
-    for i in range(N0):
-        x = L * i / N0
-        base = i * N1
-        for j in range(N1):
-            y  = L * j / N1
-            jj = base + j
-            w[jj]  = complex(winitFunc(0.0, x, y), 0.0)
-            th[jj] = complex(thinitFunc(0.0, x, y), 0.0)
+    x = (np.arange(N0) * L / N0)[:, None]   
+    y = (np.arange(N1) * L / N1)[None, :] 
+
+    w[:, :] = winitFunc(0.0, x, y) + 0j
+    th[:, :] = thinitFunc(0.0, x, y) + 0j
 
 def CompCFLcondition( u1, u2,IN_FOURIER_SPACE, dt, L):
     """
@@ -920,19 +778,13 @@ def CompCFLcondition( u1, u2,IN_FOURIER_SPACE, dt, L):
     Keeps same names and structure.
     """
     if IN_FOURIER_SPACE[0] == 'y':
-        u1 = np.fft.ifftn(u1.reshape(N0, N1), axes=(0,1), norm="backward").real.ravel()
-        u2 = np.fft.ifftn(u2.reshape(N0, N1), axes=(0,1),  norm="backward").real.ravel()
+        u1 = np.fft.fftn(u1, norm="backward")
+        u2 = np.fft.fftn(u2, norm="backward")
     #  umax on root
-    umax = 0.0
-    for j in range(N1):
-        for i in range(N0):
-            jj = i * N1 + j
-            tmp = u1[jj]**2 + u2[jj]**2
-            umax = max(umax, tmp)
-    umax = np.sqrt(umax)
+    umax = np.sqrt(np.max(u1**2 + u2**2))
     if IN_FOURIER_SPACE[0] == 'y':
-        u1 = np.fft.fftn(u1.reshape(N0, N1), axes=(0, 1), norm="backward").ravel()
-        u2 = np.fft.fftn(u2.reshape(N0, N1), axes=(0, 1), norm="backward").ravel()
+        u1 = np.fft.fftn(u1, norm="backward")
+        u2 = np.fft.fftn(u2, norm="backward")
     # CFL condition
     h = L / N0
     tmp = dt * umax / h
@@ -964,15 +816,14 @@ def InitFFTW(wo, w, tho, th,
     Arrays are assumed to be 1D views of (N0, N1) data.
     """
     # Reshape to 2D (N0, N1), FFT, then flatten back
-    wo[:]  = np.fft.fftn(wo.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    w[:]   = np.fft.fftn(w.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    tho[:] = np.fft.fftn(tho.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    th[:]  = np.fft.fftn(th.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    u1o[:] = np.fft.fftn(u1o.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    u1[:]  = np.fft.fftn(u1.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    u2o[:] = np.fft.fftn(u2o.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-    u2[:]  = np.fft.fftn(u2.reshape(N0, N1), axes=(0,1), norm="backward").ravel()
-
+    wo[:]  = np.fft.fftn(wo, norm="backward")
+    w[:]   = np.fft.fftn(w,  norm="backward")
+    tho[:] = np.fft.fftn(tho, norm="backward")
+    th[:]  = np.fft.fftn(th,  norm="backward")
+    u1o[:] = np.fft.fftn(u1o, norm="backward")
+    u1[:]  = np.fft.fftn(u1,  norm="backward")
+    u2o[:] = np.fft.fftn(u2o, norm="backward")
+    u2[:]  = np.fft.fftn(u2,  norm="backward")
 
     return wo, w, tho, th, u1o, u1, u2o, u2
 
@@ -983,7 +834,9 @@ def _split_rows(total_rows: int, size: int, rank: int):
   n0 = base + (1 if rank < extra else 0)
   start = rank * base + min(rank, extra)
   return n0, start
-  N0 = N1 = DIM = None
+
+
+N0 = N1 = None
 METHOD = None
 TMAX = None
 dt = None
@@ -1020,7 +873,7 @@ umax = 0.0
 AveErrmaxtoinit = 0.0
 
 def main():
-    global N0, N1, DIM, METHOD, TMAX, dt, dt_print, dt_norms, eta, nu, WuEpsi
+    global N0, N1, METHOD, TMAX, dt, dt_print, dt_norms, eta, nu, WuEpsi
     global restart, irestart, ConvTest, ShenYang, USE_Filter, Filter_alpha
     global Filter_noiselevel, IN_FOURIER_SPACE, wn, wn_abs, t, iout
     global iter_print, iter_norms, CFL_break, Integral1, Integral2, Integral3
@@ -1047,39 +900,40 @@ def main():
     USE_Filter       = cfg['USE_Filter']
     Filter_alpha     = cfg['Filter_alpha']
     Filter_noiselevel= cfg['Filter_noiselevel']
-    DIM              = cfg['DIM']
 
     max_iter = int(math.ceil(TMAX / dt))
     iter_print = int(math.ceil(dt_print / dt))
     iter_norms = int(math.ceil(dt_norms / dt))
-    u1   = np.zeros(DIM, dtype=np.complex128)
-    u1o  = np.zeros(DIM, dtype=np.complex128)
-    u2   = np.zeros(DIM, dtype=np.complex128)
-    u2o  = np.zeros(DIM, dtype=np.complex128)
-    th   = np.zeros(DIM, dtype=np.complex128)
-    tho  = np.zeros(DIM, dtype=np.complex128)
-    thn  = np.zeros(DIM, dtype=np.complex128)
-    w    = np.zeros(DIM, dtype=np.complex128)
-    wo   = np.zeros(DIM, dtype=np.complex128)
-    wn_field = np.zeros(DIM, dtype=np.complex128)   # if used for BDF2
-    k1_w_old  = np.zeros(DIM, dtype=np.complex128)
-    k1_th_old = np.zeros(DIM, dtype=np.complex128)
-    k1_w        = np.zeros(DIM, dtype=np.complex128)
-    k1_th       = np.zeros(DIM, dtype=np.complex128)
-    k2_w        = np.zeros(DIM, dtype=np.complex128)
-    k2_th       = np.zeros(DIM, dtype=np.complex128)
-    w_tp        = np.zeros(DIM, dtype=np.complex128)
-    th_tp       = np.zeros(DIM, dtype=np.complex128)
-    u1_tp       = np.zeros(DIM, dtype=np.complex128)
-    u2_tp       = np.zeros(DIM, dtype=np.complex128)
-    g1tmp = np.zeros(DIM, dtype=np.complex128)
-    f3tmp = np.zeros(DIM, dtype=np.complex128)
-    N3 = np.zeros(DIM, dtype=np.complex128)
-    N4 = np.zeros(DIM, dtype=np.complex128)
-    tmp1 = np.zeros(N0 * N1, dtype=np.complex128)
-    tmp2 = np.zeros(N0 * N1, dtype=np.complex128)
-    tmp3 = np.zeros(N0 * N1, dtype=np.complex128)
-    tmp4 = np.zeros(N0 * N1, dtype=np.complex128)
+    u1   = np.zeros((N0, N1), dtype=np.complex128)
+    u1o  = np.zeros((N0, N1), dtype=np.complex128)
+    u2   = np.zeros((N0, N1), dtype=np.complex128)
+    u2o  = np.zeros((N0, N1), dtype=np.complex128)
+    th   = np.zeros((N0, N1), dtype=np.complex128)
+    tho  = np.zeros((N0, N1), dtype=np.complex128)
+    thn  = np.zeros((N0, N1), dtype=np.complex128)
+    w    = np.zeros((N0, N1), dtype=np.complex128)
+    wo   = np.zeros((N0, N1), dtype=np.complex128)
+
+    k1_w_old = np.zeros((N0, N1), dtype=np.complex128)
+    k1_th_old = np.zeros((N0, N1), dtype=np.complex128)
+    k1_w = np.zeros((N0, N1), dtype=np.complex128)
+    k1_th = np.zeros((N0, N1), dtype=np.complex128)
+    k2_w = np.zeros((N0, N1), dtype=np.complex128)
+    k2_th = np.zeros((N0, N1), dt`ype=np.complex128)
+
+    w_tp = np.zeros((N0, N1), dtype=np.complex128)
+    th_tp = np.zeros((N0, N1), dtype=np.complex128)
+    u1_tp = np.zeros((N0, N1), dtype=np.complex128)
+    u2_tp = np.zeros((N0, N1), dtype=np.complex128)
+
+    g1tmp = np.zeros((N0, N1), dtype=np.complex128)
+    f3tmp = np.zeros((N0, N1), dtype=np.complex128)
+    N3 = np.zeros((N0, N1), dtype=np.complex128)
+    N4 = np.zeros((N0, N1), dtype=np.complex128)
+    tmp1 = np.zeros((N0, N1), dtype=np.complex128)
+    tmp2 = np.zeros((N0, N1), dtype=np.complex128)
+    tmp3 = np.zeros((N0, N1), dtype=np.complex128)
+    tmp4 = np.zeros((N0, N1), dtype=np.complex128)
 
     print(f"TMAX, MAX_ITER = {TMAX:.6f}, {max_iter:.6f}")
     print(f"dt_print = {dt_print:.6f}, iter_print={iter_print}")
@@ -1087,9 +941,7 @@ def main():
     print(f"dt = {dt:.6e}")
     print(f"N0, N1 = {N0}, {N1}")
     print(f"hx, hy = {L/N0:12.5e}, {L/N1:12.5e}")
-
     print(f"N0    = {N0}")
-    print(f"DIM = {DIM}")
 
     # if these will hold Fourier-space values at any point, make them complex
     wn, wn_abs_local = DefineWnWnabs(N0, N1)
@@ -1101,12 +953,12 @@ def main():
         if ConvTest == 1:
           InitVariables(w, th)
 
-        w = Read_VorTemp(N0, N1)
+        w = Read_VorTemp()
 
             # scatter to ranks (equal blocks of length DIM)
         th, u1, u2 = MakeAverageZero(th, u1, u2)
         IN_FOURIER_SPACE[0] = 'n'
-        w, u1, u2 = ComputeUVfromVort(w, u1, u2)  
+        w, u1, u2 = ComputeUVfromVort(w, u1, u2)
         u1, u2, th, w = output_data(u1, u2, th, w)
 
     elif restart[0].lower() == 'y':
@@ -1132,7 +984,7 @@ def main():
     IN_FOURIER_SPACE[0] = 'y'
 
     #  test initial norms
-    (WuQ1, WuQ2, WuQ3,ThQ1, ThQ2, ThQ3, UQ1, UQ2, UQ3, Integral1, Integral2, Integral3,DIV, th_H1, th_H2) = CompNormsInFourierSpace(u1, u2, th,wn, t, d)
+    (WuQ1, WuQ2, WuQ3,ThQ1, ThQ2, ThQ3, UQ1, UQ2, UQ3, Integral1, Integral2, Integral3,DIV, th_H1, th_H2) = CompNormsInFourierSpace(u1, u2, th,wn, t, dt)
 
     with open("norms", "a") as f:
         f.write(f"{t:12.5e}   {WuQ1:12.5e}   {WuQ2:12.5e}   {WuQ3:12.5e}   "
@@ -1150,16 +1002,13 @@ def main():
             IN_FOURIER_SPACE, dt, L
         )
         if CFL_break == 1:
-            # u1_local, u2_local, th_local,w_local = Output_Data(u1_local, u2_local, th_local, u1_all, u2_all, th_all, w_local, w_all)
            u1, u2, th, w = output_data(u1, u2, th, w )
-            # Mimic MPI_Abort + exit(1)
-            print("CFL violated; aborting.")
-
-            return
+           print("CFL violated; aborting.")
+           return
 
         # time stepper
         if METHOD == 1:  # BE/IMEX
-            w, th = do_IMEX(u1, u2, w, th)
+            w, th = do_IMEX(k1_w, k1_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3,N4,tmp1, tmp2, tmp3, tmp4)
             w, u1, u2 = ComputeUVfromVort(w, u1, u2)
 
         elif METHOD == 2:  # BDF2
@@ -1174,12 +1023,12 @@ def main():
                            wn,N3,N4, tmp1, tmp2, tmp3, tmp4)
               w, u1, u2 = ComputeUVfromVort(w, u1, u2)
             else:
-              k1_w, k1_th  wn,thn = do_BDF2(u1, u2,wo, w, wn, tho, th, thn,k1_w_old, k1_th_old,k1_w, k1_th, tmp1, tmp2, tmp3, tmp4, g1tmp, f3tmp,N3,N4)
+              k1_w, k1_th, wn,thn = do_BDF2(u1, u2,wo, w, wn, tho, th, thn,k1_w_old, k1_th_old,k1_w, k1_th, tmp1, tmp2, tmp3, tmp4, g1tmp, f3tmp,N3,N4)
 
               wn, u1, u2 = ComputeUVfromVort(wn, u1, u2)
 
         elif METHOD == 3:  # RK2
-            w_local, th_local = do_RK2(u1, u2, w, th,
+            w, th = do_RK2(u1, u2, w, th,
                            k1_w, k1_th, k2_w, k2_th,
                            w_tp, th_tp, u1_tp, u2_tp,
                            g1tmp, f3tmp,
@@ -1201,7 +1050,7 @@ def main():
             w = filter_Krasny(w,  Filter_noiselevel)
 
         # norms
-        (WuQ1, WuQ2, WuQ3,ThQ1, ThQ2, ThQ3, UQ1, UQ2, UQ3, Integral1, Integral2, Integral3,DIV, th_H1, th_H2) = CompNormsInFourierSpace(u1, u2, th,wn, t, d)
+        (WuQ1, WuQ2, WuQ3,ThQ1, ThQ2, ThQ3, UQ1, UQ2, UQ3, Integral1, Integral2, Integral3,DIV, th_H1, th_H2) = CompNormsInFourierSpace(u1, u2, th,wn, t, dt)
         AveErrmaxtoinit, th= ComputeThetaAverage(th)
 
         if (it + 1) % iter_norms == 0:
@@ -1218,8 +1067,8 @@ def main():
             iout += 1
 
             print(f"iter, time = {it+1}, {t}")
-           u1, u2, th, w = output_data(u1, u2, th, w)
-   
+            u1, u2, th, w = output_data(u1, u2, th, w)
+
 
 if __name__ == "__main__":
     main()
