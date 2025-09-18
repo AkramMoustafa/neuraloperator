@@ -1,3 +1,10 @@
+import numpy as np
+import math
+import configparser
+import matplotlib.pyplot as plt
+PI = 3.14159265358979323846264338327950288419716939937510582097494459230781
+L = 2*PI
+A = 2.0
 r"""
 August 13, 2025
  * Xiaoming Zheng
@@ -37,11 +44,12 @@ def g1_func(t, x, y,ConvTest, nu):
 
         u1   = np.cos(t)*pow(np.sin(A*x),2)*np.sin(2*A*y)
         u2   =-np.cos(t)*np.sin(2*A*x)*pow(np.sin(A*y),2)
-        Dtw  = np.cos(t)*2*A*np.cos(2*A*x)*pow(np.sin(A*y),2) +np.sin(t)*pow(np.sin(A*x),2)*2*A*np.cos(2*A*y)
+        Dtw  = np.sin(t)*2*A*np.cos(2*A*x)*pow(np.sin(A*y),2) + np.sin(t)*pow(np.sin(A*x),2)*2*A*np.cos(2*A*y)
         D1w  = np.cos(t)*4*A*A*np.sin(2*A*x)*pow(np.sin(A*y),2)-np.cos(t)*np.sin(2*A*x)*2*A*A*np.cos(2*A*y)
         D2w  =-np.cos(t)*2*A*A*np.cos(2*A*x)*np.sin(2*A*y) + np.cos(t)*pow(np.sin(A*x),2)*4*A*A*np.sin(2*A*y)
-        D11w = np.cos(t)*8*A*A*A*np.cos(2*A*x)*pow(np.sin(A*y),2) -np.cos(t)*np.cos(2*A*x)*4*A*A*A*np.sin(2*A*y)
+        D11w = np.cos(t)*8*A*A*A*np.cos(2*A*x)*pow(np.sin(A*y),2) -np.cos(t)*np.cos(2*A*x)*4*A*A*A*np.cos(2*A*y)
         D1th = np.cos(t)*A*np.sin(2*A*x)*np.sin(2*A*y)
+        tmp = Dtw - nu*D11w
 
         return Dtw + u1*D1w + u2*D2w - D1th - nu*D11w
     else:
@@ -59,7 +67,14 @@ def f3_func( t,  x,  y, ConvTest):
         D2th = np.cos(t)*pow(np.sin(A*x),2)*2*A*np.cos(2*A*y)
         D22th=-np.cos(t)*pow(np.sin(A*x),2)*4*A*A*np.sin(2*A*y)
 
+        # if(t>0 and x>0):
+        #   # print(f" t,  x,  y: {t},  {x},  {y}, {Dtth:12.5e}")
+
+        #   # input("continue?")
         return Dtth + u1*D1th + u2*D2th + u2- eta*D22th
+        # # # return Dtth  - eta*D22th
+        # return Dtth - eta*D22th
+
     else:
         return np.zeros_like(x, dtype=float)
 def f2_func( t,  x,  y, a, ConvTest):
@@ -180,8 +195,8 @@ def Nonlinear3and4(u1, u2, w, th, tmp1,  tmp2,  tmp3, tmp4, N4,  N3, time_spec):
     kx = wn[:, None]
     ky = wn[None, :]
     # Third compute n3 and n4
-    N3[:, :] =  (kx * tmp1 + ky * tmp2)
-    N4[:, :] =  (kx * tmp3 + ky * tmp4)
+    N3[:, :] =  1j*(kx * tmp1 + ky * tmp2)
+    N4[:, :] =  1j*(kx * tmp3 + ky * tmp4)
 
     return tmp1, tmp2, tmp3, tmp4, N3, N4
 
@@ -275,6 +290,8 @@ def RHS(k_w, k_th, u1, u2, th, w,
     return k_w, k_th
 
 
+  
+
 def RHS_k1_w_th(u1,u2,th, w, k1_w,  k1_th, t,dt, g1tmp, f3tmp, N3,N4,tmp1, tmp2, tmp3, tmp4):
     # Purpose: find k1_w =-\nabla\cdot(u w) + \nabla_x theta + g1
     # g1 = \nabla\times (f1,f2)
@@ -308,19 +325,25 @@ def RHS_BE(k_w, k_th, u1, u2, th, w,
 
     # Nonlinear terms N11, N12, N2, N3:
     #  Prepare for nonlinear calculation:
-    N3, N4, u1, u2, w, th = PreNonlinear(u1, u2, w, th, N3,N4, t)
+    N3, N4, u1_phys, u2_phys, w_phys, th_phys = PreNonlinear(u1, u2, w, th, N3,N4, t)
     #  Step 1: Collect terms of (u\cdot\nabla)u to N11, N12 and N2:
-    tmp1, tmp2, tmp3,tmp4 , N3,N4 =  Nonlinear3and4(u1, u2, w, th, tmp1, tmp2, tmp3, tmp4, N3,N4, t)
-    #  After all for nonlinear terms,  convert these quantities to Fourier space:
-    u1, u2, w, th = AfterNonlinear(u1, u2, w, th, t)
-
+    tmp1, tmp2, tmp3,tmp4 , N3,N4 =  Nonlinear3and4(u1_phys, u2_phys, w_phys, th_phys, tmp1, tmp2, tmp3, tmp4, N3,N4, t)
     k1 = wn[:, None]        # shape (N0, 1)
     k2 = wn[None, :]        # shape (1, N1)
     # Next, add linear terms:
     # rhs of w: dw/dt = g1 - N4 - i*k1*theta
-    k_w[:, :] = (g1tmp - N4) + 1j * k1 * th
+    # k_w[:, :] = (g1tmp - N4) + 1j * k1 * th
+    # real_part = (g1tmp.real - N4.real) - k1 * th.imag
+    # imag_part = (g1tmp.imag - N4.imag) + k1 * th.real
+
+    real_part = g1tmp
+    imag_part = g1tmp
+    k_w = real_part + 1j * imag_part
+    k_w[:, :] = (g1tmp - N4) - 1j * k1 * th
     # rhs of theta: dtheta/dt = f3 - N3 - u2
     k_th[:, :] = f3tmp - N3 - u2
+    # k_th[:, :] = f3tmp
+
     return k_w, k_th
 
 def do_IMEX(k1_w, k1_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3,N4,tmp1, tmp2, tmp3, tmp4):
@@ -369,8 +392,8 @@ def do_IMEX(k1_w, k1_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3,N4,tmp1, tmp2, t
           jj = i*N1+j;
           x=L*(i)/N0;
           y=L*j/N1;
-          g1tmp[jj] = g1_func(t, x,y,ConvTest,nu=1);
-          f3tmp[jj]= f3_func(t, x,y,ConvTest);
+          g1tmp[jj] = g1_func(t, x,y,ConvTest,nu=1)
+          f3tmp[jj]= f3_func(t, x,y,ConvTest)
     g1tmp2d = g1tmp.reshape(N0, N1)
     f3tmp2d = f3tmp.reshape(N0, N1)
     g1tmp_fft = np.fft.fftn(g1tmp2d, s=(N0, N1), norm="backward").ravel()
@@ -397,9 +420,12 @@ def do_IMEX(k1_w, k1_th, u1, u2, th, w, g1tmp, f3tmp, t, wn, N3,N4,tmp1, tmp2, t
 	      # below is the new u1, u2, theta:
         tmp1 = 1.0 + dt*nu*k1sq
         tmp2 = 1.0 + dt*eta*k2sq
+        # print(f" jj: {jj}, nu: {nu}  eta: {eta} k1sq: {k1sq}, k2sq: {k2sq}")
+
         w[jj] = ( w[jj]  + dt*k1_w[jj] )/tmp1
         th[jj]= ( th[jj] + dt*k1_th[jj])/tmp2
-
+        # print(f"jj, th, k1_th", jj,th[jj], k1_th)
+        # input("Press")
     return w.reshape(N0, N1), th.reshape(N0, N1)
 
 def ComputeUVfromVort(w, u1, u2,wn):
@@ -722,7 +748,7 @@ def ComputeThetaAverage(th):
       if IN_FOURIER_SPACE[0] == 'y':
         th = np.fft.ifftn(th,s=(N0, N1), axes=(0, 1), norm="backward").real
 
-      return AveErrmaxtoinit, th
+      return AveErrmaxtoinit
 
 def SetExactVort(w, time_spec):
 
@@ -842,7 +868,8 @@ def _split_rows(total_rows: int, size: int, rank: int):
   n0 = base + (1 if rank < extra else 0)
   start = rank * base + min(rank, extra)
   return n0, start
-  N0 = N1 = None
+
+N0 = N1 = None
 METHOD = None
 TMAX = None
 dt = None
@@ -1061,7 +1088,7 @@ def main():
         # norms
         (WuQ1, WuQ2, WuQ3,ThQ1, ThQ2, ThQ3, UQ1, UQ2, UQ3, Integral1, Integral2, Integral3,DIV, th_H1, th_H2) = CompNormsInFourierSpace(u1, u2, th,wn, t, dt)
 
-        AveErrmaxtoinit, th= ComputeThetaAverage(th)
+        AveErrmaxtoinit= ComputeThetaAverage(th)
         if (it + 1) % iter_norms == 0:
             with open("norms", "a") as f:
                 f.write(f"{t:12.5e}   {WuQ1:12.5e}   {WuQ2:12.5e}   {WuQ3:12.5e}   "
