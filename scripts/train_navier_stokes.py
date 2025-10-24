@@ -13,7 +13,6 @@ from neuralop.utils import get_wandb_api_key, count_model_params
 from neuralop.mpu.comm import get_local_rank
 from neuralop.training import setup, AdamW
 
-
 # Read the configuration
 config_name = "default"
 from zencfg import make_config_from_cli
@@ -23,7 +22,6 @@ from config.navier_stokes_config import Default
 
 config = make_config_from_cli(Default)
 config = config.to_dict()
-
 # Set-up distributed communication, if using
 device, is_logger = setup(config)
 # Set up WandB logging

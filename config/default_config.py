@@ -118,11 +118,14 @@ Purpose:
     Fourier Neural Operator (FNO) on the 2D Navier–Stokes system.
 """
 class Default_NS2D_2ch(Default):          
-    fno2d: Fno2d_2ch = Fno2d_2ch()     
+    fno2d: Fno2d_2ch = Fno2d_2ch()    
+    arch: str = "fno2d" 
     distributed: Distributed = Distributed(use_distributed = False)   
     data:  Data_2ch  = Data_2ch() 
 
 class Distributed_Mg_Tucker(ConfigBase):
+    
     tfno2d: Tfno2d = Tfno2d()
+    arch: str = "fno2d"
     distributed: Distributed = Distributed()
     patching: Patching = Patching()

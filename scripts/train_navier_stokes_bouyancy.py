@@ -1,34 +1,32 @@
-"""
-Author: Akram Moustafa
-Date: 09/03/2025
-Purpose:
-  Train a 2-channel Fourier Neural Operator (FNO) model for
-  the 2D Navier–Stokes equations using vorticity + temperature.
-"""
 
-import sys
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
 import wandb
+import sys
 
 from neuralop import H1Loss, LpLoss, Trainer, get_model
-from neuralop.data.datasets.navier_stokes import load_navier_stokes_pt
-from neuralop.data.datasets.navier_stokes_temp import load_temperature_pt
 from neuralop.data.transforms.data_processors import MGPatchingDataProcessor
 from neuralop.utils import get_wandb_api_key, count_model_params
 from neuralop.mpu.comm import get_local_rank
 from neuralop.training import setup, AdamW
 
 from zencfg import make_config_from_cli
-from config.default_config import Default_NS2D_2ch
+from config.navier_stokes_config import Default_NS2D_2ch
+from neuralop.data.datasets.navier_stokes_2ch import load_navier_stokes_2ch_pt
 
-sys.argv = [""]  
+
+sys.path.insert(0, '../')
+
+# 🧠 Create config instance
+config_name = "Default_NS2D_2ch"
 config = make_config_from_cli(Default_NS2D_2ch)
-config_name = "default"
 
+# ✅ Important: keep it as an object (do NOT call to_dict here)
+config = config.to_dict()  
 print(config)
+
 
 # Set-up distributed communication, if using
 device, is_logger = setup(config)
@@ -66,54 +64,29 @@ if config.wandb.log and is_logger:
             config.params[key] = wandb.config[key]
     wandb.init(**wandb_init_args)
 
-# Make sure we only print information when needed
-config.verbose = config.verbose and is_logger
-
-# Print config to screen
-if config.verbose:
-    print(f"##### CONFIG #####\n")
-    print(config)
-
-data_dir = Path(config.data.folder).expanduser()
-
-train_loader, test_loaders, data_processor = load_navier_stokes_pt(
-    data_root=data_dir,
-    train_resolution=config.data.train_resolution,
-    n_train=config.data.n_train,
-    batch_size=config.data.batch_size,
-    test_resolutions=config.data.test_resolutions,
-    n_tests=config.data.n_tests,
-    test_batch_sizes=config.data.test_batch_sizes,
-    encode_input=config.data.encode_input,
-    encode_output=config.data.encode_output,
-)
-
-train_loader, test_loaders, data_processor = load_temperature_pt(
-    n_train=config.data.n_train,
-    n_tests=[2000],                 
-    batch_size=config.data.batch_size,
-    test_batch_sizes=[config.data.test_batch_sizes[0]], 
-    data_root=data_dir,
-    train_resolution=128,
-    test_resolutions=[128],         
-    encode_input=True,
-    encode_output=True,
-)
-
-train_loader, test_loaders, data_processor = load_navier_stokes_2ch_pt(
-    n_train=config.data.n_train,
-    n_tests=[2000],                 
-    batch_size=config.data.batch_size,
-    test_batch_sizes=[config.data.test_batch_sizes[0]], 
-    data_root=data_dir,
-    train_resolution=config.data.n_tests,
-    test_resolutions=config.data.test_batch_sizes,         
-    encode_input=config.data.encode_input,
-    encode_output=config.data.encode_output,
-)
-
 model = get_model(config)
 model = model.to(device)
+
+from neuralop.data.datasets.navier_stokes_2ch import load_navier_stokes_2ch_pt
+from pathlib import Path
+
+data_root = Path(__file__).resolve().parent.parent / "neuralop" / "data" / "datasets" / "data"
+print(data_root)
+train_loader, test_loaders, data_processor = load_navier_stokes_2ch_pt(
+    n_train=10000,
+    n_tests=[2000, 1000],
+    batch_size=16,
+    test_batch_sizes=[16, 4],
+    data_root=data_root,  
+    train_resolution=128,
+    test_resolutions=[128],
+    encode_input=True,
+    encode_output=True,
+    encoding="channel-wise",
+    channel_dim=2,
+    subsampling_rate=None,
+    num_workers=0
+)
 # convert dataprocessor to an MGPatchingDataprocessor if patching levels > 0
 if config.patching.levels > 0:
     data_processor = MGPatchingDataProcessor(model=model,
@@ -225,6 +198,14 @@ if is_logger:
         wandb.log(to_log, commit=False)
         wandb.watch(model)
 
+xb = next(iter(train_loader))
+xb["x"] = xb["x"].squeeze(2)
+xb["y"] = xb["y"].squeeze(2)
+print("Fixed x shape:", xb["x"].shape)
+for batch in train_loader:
+    batch["x"] = batch["x"].squeeze(2)
+    batch["y"] = batch["y"].squeeze(2)
+    out = model(**batch)
 
 trainer.train(
     train_loader,
@@ -241,4 +222,3 @@ if config.wandb.log and is_logger:
 
 if dist.is_initialized():
     dist.destroy_process_group()
-
