@@ -20,13 +20,14 @@ class NavierStokes2ChDataset(PTDataset):
                  batch_size: int,
                  test_batch_sizes: list,
                  train_resolution: int = 128,
-                 test_resolutions: list = [128],
+                 test_resolutions: list = [128,128],
                  encode_input: bool = True,
                  encode_output: bool = True,
                  encoding: str = "channel-wise",
                  channel_dim: int = 2,
                  subsampling_rate=None,
-                 download: bool = False):
+                 download: bool = False,
+                 channels_squeezed: bool = False):
         """
         Loads pre-saved 2-channel Navier–Stokes data (.pt) from disk.
         Expected file names:
@@ -52,7 +53,8 @@ class NavierStokes2ChDataset(PTDataset):
                          encoding=encoding,
                          channel_dim=channel_dim,
                          input_subsampling_rate=subsampling_rate,
-                         output_subsampling_rate=subsampling_rate)
+                         output_subsampling_rate=subsampling_rate,
+                         channels_squeezed = channels_squeezed)
         
 def load_navier_stokes_2ch_pt(
     n_train,
@@ -61,13 +63,14 @@ def load_navier_stokes_2ch_pt(
     test_batch_sizes,
     data_root=None,
     train_resolution=128,
-    test_resolutions=[128],
+    test_resolutions=[128,128],
     encode_input=True,
     encode_output=True,
     encoding="channel-wise",
     channel_dim=2,
     subsampling_rate=None,
-    num_workers=1
+    num_workers=1,
+    channels_squeezed = False
 ):
     """
     Returns train/test DataLoaders and DataProcessor for 2-channel dataset.
@@ -87,7 +90,8 @@ def load_navier_stokes_2ch_pt(
         encode_output=encode_output,
         encoding=encoding,
         channel_dim=channel_dim,
-        subsampling_rate=subsampling_rate
+        subsampling_rate=subsampling_rate,
+        channels_squeezed = channels_squeezed
     )
 
     train_loader = DataLoader(dataset.train_db,
