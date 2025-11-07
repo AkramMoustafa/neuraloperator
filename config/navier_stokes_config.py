@@ -15,6 +15,16 @@ class NavierStokesOptConfig(OptimizationConfig):
     step_size: int = 100
     gamma: float = 0.5
 
+
+class NavierStokesOptConfigBous(OptimizationConfig):
+    n_epochs: int = 600
+    learning_rate: float = 6e-4
+    training_loss: str = "h1"
+    weight_decay: float = 1e-4
+    scheduler: str = "StepLR"
+    step_size: int = 100
+    gamma: float = 0.5
+
 class NavierStokesDatasetConfig(ConfigBase):
     folder: str = "~/data/navier_stokes/"
     batch_size: int = 8
@@ -42,7 +52,7 @@ class Default_NS2D_2ch(ConfigBase):
     distributed: DistributedConfig = DistributedConfig()
     model: ModelConfig = FNO_Medium2d_2ch()
     opt: OptimizationConfig = NavierStokesOptConfig()
-    data: NavierStokesDatasetConfig = NavierStokesDatasetConfig()
+    data: NavierStokesDatasetConfig = NavierStokesOptConfigBous()
     patching: PatchingConfig = PatchingConfig()
     wandb: WandbConfig = WandbConfig()
 
