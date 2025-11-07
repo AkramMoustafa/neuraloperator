@@ -51,8 +51,8 @@ class Default_NS2D_2ch(ConfigBase):
     verbose: bool = True
     distributed: DistributedConfig = DistributedConfig()
     model: ModelConfig = FNO_Medium2d_2ch()
-    opt: OptimizationConfig = NavierStokesOptConfig()
-    data: NavierStokesDatasetConfig = NavierStokesOptConfigBous()
+    opt: OptimizationConfig = NavierStokesOptConfigBous()
+    data: NavierStokesDatasetConfig = NavierStokesDatasetConfig()
     patching: PatchingConfig = PatchingConfig()
     wandb: WandbConfig = WandbConfig()
 
